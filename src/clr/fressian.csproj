@@ -1,0 +1,88 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{537BE995-858A-46D8-BC06-BFC2AA78D57B}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>fressian</RootNamespace>
+    <AssemblyName>fressian</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="org\fressian\Adler32.cs" />
+    <Compile Include="org\fressian\CheckedOutputStream.cs" />
+    <Compile Include="org\fressian\handlers\ReadHandler.cs" />
+    <Compile Include="org\fressian\handlers\WriteHandler.cs" />
+    <Compile Include="org\fressian\Checksum.cs" />
+    <Compile Include="org\fressian\ImmutableDictionary.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="org\fressian\Cached.cs" />
+    <Compile Include="org\fressian\CachedObject.cs" />
+    <Compile Include="org\fressian\FressianReader.cs" />
+    <Compile Include="org\fressian\FressianWriter.cs" />
+    <Compile Include="org\fressian\handlers\ILookup.cs" />
+    <Compile Include="org\fressian\handlers\IWriteHandlerLookup.cs" />
+    <Compile Include="org\fressian\handlers\WriteHandlerLookup.cs" />
+    <Compile Include="org\fressian\impl\ByteBufferInputStream.cs" />
+    <Compile Include="org\fressian\impl\BytesOutputStream.cs" />
+    <Compile Include="org\fressian\impl\CachingLookup.cs" />
+    <Compile Include="org\fressian\impl\ChainedLookup.cs" />
+    <Compile Include="org\fressian\impl\Codes.cs" />
+    <Compile Include="org\fressian\impl\Fns.cs" />
+    <Compile Include="org\fressian\impl\Handlers.cs" />
+    <Compile Include="org\fressian\impl\InheritanceLookup.cs" />
+    <Compile Include="org\fressian\impl\InterleavedIndexHopMap.cs" />
+    <Compile Include="org\fressian\impl\MapLookup.cs" />
+    <Compile Include="org\fressian\impl\Ranges.cs" />
+    <Compile Include="org\fressian\impl\RawInput.cs" />
+    <Compile Include="org\fressian\impl\RawOutput.cs" />
+    <Compile Include="org\fressian\impl\StructType.cs" />
+    <Compile Include="org\fressian\Reader.cs" />
+    <Compile Include="org\fressian\StreamingWriter.cs" />
+    <Compile Include="org\fressian\Tagged.cs" />
+    <Compile Include="org\fressian\TaggedObject.cs" />
+    <Compile Include="org\fressian\Writer.cs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

@@ -1,0 +1,11 @@
+*.ipr
+*.iws
+.idea/*
+*.iml
+target/*
+*.user
+src/clr/bin
+src/clr/obj
+[Dd]ebug
+[Rr]elease
+*.suo
