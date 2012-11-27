@@ -194,8 +194,8 @@ namespace org.fressian.impl
             installHandler(handlers, typeof(TaggedObject), "any", new GenericWriteHandler<object>(new Action<Writer, object>((w, o) =>
             {
                 TaggedObject t = (TaggedObject)o;
-                Object[] value = t.getValue();
-                w.writeTag(t.getTag(), value.Length);
+                Object[] value = t.Value;
+                w.writeTag(t.Tag, value.Length);
                 for (int n = 0; n < value.Length; n++)
                 {
                     //FF

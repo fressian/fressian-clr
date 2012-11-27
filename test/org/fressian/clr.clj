@@ -1,6 +1,5 @@
 (assembly-load-from "c:/Program Files (x86)/Reference Assemblies/Microsoft/Framework/.NETFramework/v4.0/System.Numerics.dll")
-(assembly-load-from "c:/Users/pairuser/dev/fressian/fressian-clr/bin/Debug/fressian.dll")
-
+(assembly-load-from "c:/Users/pairuser/dev/fressian-clr/src/clr/bin/Debug/fressian.dll")
 
 (ns org.fressian.clr
   (:use ;;[clojure.test.generative]
@@ -16,8 +15,9 @@
   "Normalize ILookup or map into an ILookup."
   [o]
   (if (map? o)
-    (reify |org.fressian.handlers.ILookup`2[System.Object,org.fressian.handlers.WriteHandler]|
+    #_(reify |org.fressian.handlers.ILookup`2[System.Type,System.Collections.Generic.IDictionary`2[System.String,org.fressian.handlers.WriteHandler]]|
         (valAt [_ k] (get o k)))
+    o
     o))
 
 (defn as-read-lookup
@@ -34,7 +34,7 @@
   ;; TODO: make symmetric with create-reader, using io/output-stream?
   ([out] (create-writer out nil))
   ([out lookup]
-     (FressianWriter. out (as-write-lookup lookup))))
+     (FressianWriter. out (as-write-lookup lookup) true)))
 
 (defn ^Reader create-reader
   "Create a fressian reader targetting in, which must be compatible
@@ -72,10 +72,7 @@
 
 (defn bytestream->buf
   [stream]
-  (.ToArray stream)
-  #_(let [rdr (System.IO.BinaryReader. stream)]
-    (.set_Position stream 0)
-    (.ReadBytes rdr (.Length stream))))
+  (.ToArray stream))
 
 (defn byte-buffer-seq
   [bb]
@@ -90,30 +87,35 @@
 (def clojure-write-handlers
   {clojure.lang.Keyword
    {"key"
-    (reify org.fressian.handlers.WriteHandler (write [_ w s]
-                               (.writeTag w "key" 2)
-                               (.writeObject w (namespace s))
-                               (.writeObject w (name s))))}
+    (reify org.fressian.handlers.WriteHandler
+      (write [_ w s]
+        (.writeTag w "key" 2)
+        (.writeObject w (namespace s))
+        (.writeObject w (name s))))}
    clojure.lang.Symbol
    {"sym"
-    (reify org.fressian.handlers.WriteHandler (write [_ w s]
-                               (.writeTag w "sym" 2)
-                               (.writeObject w (namespace s))
-                               (.writeObject w (name s))))}})
+    (reify org.fressian.handlers.WriteHandler
+      (write [_ w s]
+        (.writeTag w "sym" 2)
+        (.writeObject w (namespace s))
+        (.writeObject w (name s))))}})
 
 (def clojure-read-handlers
   {"key"
-   (reify org.fressian.handlers.ReadHandler (read [_ rdr tag component-count]
-                            (keyword (.readObject rdr) (.readObject rdr))))
+   (reify org.fressian.handlers.ReadHandler
+     (read [_ rdr tag component-count]
+       (keyword (.readObject rdr) (.readObject rdr))))
    "sym"
-   (reify org.fressian.handlers.ReadHandler (read [_ rdr tag component-count]
-                            (symbol (.readObject rdr) (.readObject rdr))))
+   (reify org.fressian.handlers.ReadHandler
+     (read [_ rdr tag component-count]
+       (symbol (.readObject rdr) (.readObject rdr))))
    "map"
-   (reify org.fressian.handlers.ReadHandler (read [_ rdr tag component-count]
-                            (let [kvs (.readObject rdr)]
-                              (if (< (.Count kvs) 16)
-                                (clojure.lang.PersistentArrayMap. (.toArray kvs))
-                                (clojure.lang.PersistentHashMap/create (seq kvs))))))})
+   (reify org.fressian.handlers.ReadHandler
+     (read [_ rdr tag component-count]
+       (let [kvs (.readObject rdr)]
+         (if (< (.Count kvs) 16)
+           (clojure.lang.PersistentArrayMap. (.toArray kvs))
+           (clojure.lang.PersistentHashMap/create (seq kvs))))))})
 
 
 (defn roundtrip
@@ -123,15 +125,9 @@
   ([o write-handlers read-handlers]
      (defressian
         (System.IO.MemoryStream.
-         (byte-buf o
-                   ;;:handlers write-handlers
-                   ))
+         (byte-buf o :handlers write-handlers))
         :handlers read-handlers
         )))
-
-;; (reify System.Text.RegularExpressions.Regex
-;;   (.Equals [this that]
-;;     (= (str this) (str that))))
 
 (defprotocol IEquality
   (equals [a b]))
@@ -139,10 +135,11 @@
 (extend-type org.fressian.TaggedObject
   IEquality
   (equals [a b]
-    (= {:org.fressian/tag (.tag a)
-        :org.fressian/value (into [] (.value a))}
-       {:org.fressian/tag (.tag b)
-        :org.fressian/value (into [] (.value b))})))
+    ;;(prn (into [] (.Value a)) b)
+    (= b (cond
+          (= (.Tag a) "key") (apply keyword (.Value a))
+          (= (.Tag a) "sym") (apply symbol (.Value a))
+          :else nil))))
 
 (extend-type System.Text.RegularExpressions.Regex
   IEquality
@@ -192,6 +189,19 @@
   (equals [a b]
     (= (into [] a) (into [] b))))
 
+(defprotocol IDisplay
+  (display [o]))
+
+(extend-type System.Object
+  IDisplay
+  (display [o] o))
+
+(extend-type org.fressian.TaggedObject
+  IDisplay
+  (display [o]
+    {:tag (.Tag o)
+     :value (into [] (.Value o))}))
+
 (defmacro deftest-times
   [name generator]
   `(defn ~name
@@ -201,12 +211,12 @@
              (try
                (let [o# (roundtrip i# clojure-write-handlers clojure-read-handlers)]
                  {:iteraton x#
-                  :input {:type (type i#) :val i#}
-                  :output {:type (type o#) :val o#}
+                  :input {:type (type i#) :val (display i#)}
+                  :output {:type (type o#) :val (display o#)}
                   :result (equals i# o#)})
                (catch Exception ex#
                    {:iteraton x#
-                    :input {:type (type i#) :val i#}
+                    :input {:type (type i#) :val (display i#)}
                     :output (.Message ex#)
                     :result :failed})))
           (range times#))))
@@ -227,7 +237,7 @@
 
   (show-failures test-fressian-character-encoding 1000)
   (show-failures test-fressian-scalars 10)
-  (show-failures test-fressian-builtins 10)
+  (show-failures test-fressian-builtins 100)
   (show-failures test-fressian-int-packing 1)
   
   

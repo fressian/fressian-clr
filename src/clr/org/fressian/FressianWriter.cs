@@ -36,7 +36,40 @@ namespace org.fressian
          */
         public FressianWriter(Stream stream, org.fressian.handlers.ILookup<Type, IDictionary<String, WriteHandler>> userHandlers)
         {
-            writeHandlerLookup = new WriteHandlerLookup(userHandlers);
+            this.writeHandlerLookup = new WriteHandlerLookup(userHandlers);
+            
+            clearCaches();
+            this.stream = stream;
+            this.rawOut = new RawOutput(this.stream);
+        }
+
+        public FressianWriter(Stream stream, object userHandlers, bool dummy)
+        {
+            if (userHandlers != null)
+            {
+                var dLookup = new Dictionary<Type, IDictionary<String, WriteHandler>>();
+
+                var handlers = ((System.Collections.Generic.IEnumerable<object>)userHandlers);
+                foreach (System.Collections.IList h in handlers)
+                {
+                    var type = (Type)h[0];
+                    if (!dLookup.ContainsKey(type))
+                        dLookup[type] = new Dictionary<string, WriteHandler>();
+
+                    foreach (System.Collections.IList e in (IEnumerable<object>)h[1])
+                    {
+                        var tag = (string)e[0];
+                        var writeHandler = (org.fressian.handlers.WriteHandler)e[1];
+                        dLookup[type][tag] = writeHandler;
+                    }
+                }
+
+                this.writeHandlerLookup = new WriteHandlerLookup(new MapLookup<Type, IDictionary<String, WriteHandler>>(dLookup));
+            }
+            else
+            {
+                this.writeHandlerLookup =  new WriteHandlerLookup(Handlers.defaultWriteHandlers());
+            }
             clearCaches();
             this.stream = stream;
             this.rawOut = new RawOutput(this.stream);

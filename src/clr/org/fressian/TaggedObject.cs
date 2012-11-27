@@ -29,19 +29,19 @@ namespace org.fressian
             this.tag = tag;
         }
 
-        public Object getTag()
+        public Object Tag
         {
-            return tag;
+            get { return tag; }
         }
 
-        public Object[] getValue()
+        public Object[] Value
         {
-            return value;
+            get { return value;}
         }
 
-        public IDictionary getMeta()
+        public IDictionary Meta
         {
-            return meta;
+            get { return meta; }
         }
     }
 }

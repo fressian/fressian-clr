@@ -13,8 +13,12 @@ namespace org.fressian
 {
     public interface Tagged
     {
-        Object getTag();
-        Object[] getValue();
-        IDictionary getMeta();
+        Object Tag { get; }
+        Object[] Value { get; }
+        IDictionary Meta { get; }
+
+        //Object getTag();
+        //Object[] getValue();
+        //IDictionary getMeta();
     }
 }
