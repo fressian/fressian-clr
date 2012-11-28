@@ -172,22 +172,102 @@ namespace org.fressian.impl
             return new int[] { stringPos, bufferPos };
         }
 
-        //FF
-        public static int numberOfLeadingZeros(long i)
+        #region Int64 Number of Leading Zeros Helper
+        /*
+        Taken/Adapted from the following two files:
+            * https://j2cstranslator.svn.sourceforge.net/svnroot/j2cstranslator/trunk/J2CSMapping/src/ILOG/Util/Int64Helper.cs
+            * https://j2cstranslator.svn.sourceforge.net/svnroot/j2cstranslator/trunk/J2CSMapping/src/ILOG/Util/Math.cs
+        
+        Licenses:    
+        
+            // 
+            // J2CsMapping : runtime library for J2CsTranslator
+            // 
+            // Copyright (c) 2008-2010 Alexandre FAU.
+            // All rights reserved. This program and the accompanying materials
+            // are made available under the terms of the Eclipse Public License v1.0
+            // which accompanies this distribution, and is available at
+            // http://www.eclipse.org/legal/epl-v10.html
+            // Contributors:
+            //   Alexandre FAU (IBM)
+            //
+         
+            // 
+            // J2CsMapping : runtime library for J2CsTranslator
+            // 
+            // Copyright (c) 2008-2010 Alexandre FAU.
+            // All rights reserved. This program and the accompanying materials
+            // are made available under the terms of the Eclipse Public License v1.0
+            // which accompanies this distribution, and is available at
+            // http://www.eclipse.org/legal/epl-v10.html
+            // Contributors:
+            //   Alexandre FAU (IBM)
+            //
+        */
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="a"></param>
+        /// <param name="b"></param>
+        /// <returns></returns>
+        public static long URS(long a, int b)
         {
-            // HD, Figure 5-6
-            if (i == 0)
-                return 64;
-            int n = 1;
-            int x = (int)((uint)i >> 32);
-            if (x == 0) { n += 32; x = (int)i; }
-            if ((uint)x >> 16 == 0) { n += 16; x <<= 16; }
-            if ((uint)x >> 24 == 0) { n += 8; x <<= 8; }
-            if ((uint)x >> 28 == 0) { n += 4; x <<= 4; }
-            if ((uint)x >> 30 == 0) { n += 2; x <<= 2; }
-            n -= (int)((uint)x >> 31);
-            return n;
+            long res = 0;
+            if (a < 0)
+            {
+                ulong c = (ulong)a >> b;
+                res = (long)c;
+            }
+            else
+            {
+                ulong c = ((ulong)a) >> b;
+                res = Convert.ToInt64(c);
+
+            }
+            return res;
         }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="i"></param>
+        /// <returns></returns>
+        /// ToBeChecked
+        public static int numberOfLeadingZeros(long lng)
+        {
+            lng |= lng >> 1;
+            lng |= lng >> 2;
+            lng |= lng >> 4;
+            lng |= lng >> 8;
+            lng |= lng >> 16;
+            lng |= lng >> 32;
+            return BitCount(~lng);
+        }
+
+        //
+        // BitCount
+        //
+        /// <summary>
+        /// <p>Counts the number of 1 bits in the <code>int</code>
+        /// value passed; this is sometimes referred to as a
+        /// population count.</p>
+        /// </summary>
+        /// <param name="x"></param>
+        /// <returns></returns>
+        /// ToBeChecked
+        public static int BitCount(long lng)
+        {
+            lng = (lng & 0x5555555555555555L) + ((lng >> 1) & 0x5555555555555555L);
+            lng = (lng & 0x3333333333333333L) + ((lng >> 2) & 0x3333333333333333L);
+            // adjust for 64-bit integer
+            int i = (int)(URS(lng, 32) + lng);
+            i = (i & 0x0F0F0F0F) + ((i >> 4) & 0x0F0F0F0F);
+            i = (i & 0x00FF00FF) + ((i >> 8) & 0x00FF00FF);
+            i = (i & 0x0000FFFF) + ((i >> 16) & 0x0000FFFF);
+            return i;
+        }
+        #endregion
 
         public static int SingleToInt32Bits(this float v)
         {

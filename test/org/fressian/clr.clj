@@ -189,6 +189,16 @@
   (equals [a b]
     (= (into [] a) (into [] b))))
 
+(extend-type nil
+  IEquality
+  (equals [a b] (and (nil? a) (nil? b))))
+
+(extend-type |System.Collections.Generic.List`1[System.Object]|
+  IEquality
+  (equals [a b]
+    (= (into [] a) (into [] b))))
+
+
 (defprotocol IDisplay
   (display [o]))
 
@@ -201,6 +211,16 @@
   (display [o]
     {:tag (.Tag o)
      :value (into [] (.Value o))}))
+
+(extend-type nil
+  IDisplay
+  (display [o] o))
+
+(extend-type |System.Collections.Generic.List`1[System.Object]|
+  IDisplay
+  (display [o]
+    (into [] o)))
+
 
 (defmacro deftest-times
   [name generator]
@@ -236,7 +256,7 @@
 (comment
 
   (show-failures test-fressian-character-encoding 1000)
-  (show-failures test-fressian-scalars 10)
+  (show-failures test-fressian-scalars 1000)
   (show-failures test-fressian-builtins 100)
   (show-failures test-fressian-int-packing 1)
   

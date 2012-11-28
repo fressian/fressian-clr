@@ -67,9 +67,9 @@ namespace org.fressian.impl
 
         public long readRawInt32()
         {
-            bytesRead = bytesRead + 4;
+            //bytesRead = bytesRead + 4;
             //return (long)dis.ReadInt32() & 0xffffffffL;
-            return (readRawByte() << 24) + (readRawByte() << 16) + (readRawByte() << 8) + readRawByte();            
+            return ((readRawByte() << 24) + (readRawByte() << 16) + (readRawByte() << 8) + readRawByte()) & 0xFFFFFFFFL;
         }
 
         public long readRawInt40()
@@ -77,8 +77,32 @@ namespace org.fressian.impl
             return (readRawInt8() << 32) | readRawInt32();
         }
 
+        private byte[] rawbytes = new byte[8];
         public long readRawInt48()
         {
+            /*
+            bytesRead = bytesRead + 6;
+            //return dis.ReadInt64();
+            var bytes = dis.ReadBytes(6);
+            rawbytes[0] = bytes[0];
+            rawbytes[1] = bytes[1];
+            rawbytes[2] = bytes[2];
+            rawbytes[3] = bytes[3];
+            rawbytes[4] = bytes[4];
+            rawbytes[5] = bytes[5];
+            rawbytes[6] = 0;
+            rawbytes[7] = 0;
+            Array.Reverse(rawbytes, 0, 6);
+            return BitConverter.ToInt64(rawbytes, 0);
+            */
+            /*
+            var b1 = readRawByte();
+            var b2 = readRawByte();
+            var t2 = (b1 << 8) + b2; //readRawInt16();
+            var t1 = readRawInt32();
+            var t3 = (long)t2 << 32;
+            var t4 = t3 | t1;
+            */
             return (readRawInt16() << 32) | readRawInt32();
         }
 
