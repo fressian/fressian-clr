@@ -256,9 +256,10 @@
 (comment
 
   (show-failures test-fressian-character-encoding 1000)
-  (show-failures test-fressian-scalars 1000)
+  (show-failures test-fressian-scalars 10000)
   (show-failures test-fressian-builtins 100)
   (show-failures test-fressian-int-packing 1)
+  (show-failures test-fressian-names 1000)
   
   
 )

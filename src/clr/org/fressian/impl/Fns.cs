@@ -75,7 +75,9 @@ namespace org.fressian.impl
         {
             if (o == null)
             {
-                return null;
+                //FF
+                return typeof(Handlers.Null);
+                //return null;
             }
             else
             {
