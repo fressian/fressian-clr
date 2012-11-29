@@ -2,10 +2,13 @@
 (assembly-load-from "c:/Users/pairuser/dev/fressian-clr/src/clr/bin/Debug/fressian.dll")
 
 (ns org.fressian.clr
-  (:use ;;[clojure.test.generative]
-        [clojure.pprint :only [pprint]])
-  (:require [org.fressian.generators :as gen])
-  (:import [org.fressian FressianWriter StreamingWriter FressianReader Writer Reader]
+  (:use [clojure.pprint :only [pprint]])
+  (:require [org.fressian.generators :as gen]
+            [clojure.walk :as walk]
+            [clojure.data]
+            [clojure.test.generative.generators :as tgen])
+  (:import [System.IO MemoryStream]
+           [org.fressian FressianWriter StreamingWriter FressianReader Writer Reader]
            [org.fressian.handlers WriteHandler ReadHandler WriteHandlerLookup]
            [org.fressian.impl ByteBufferInputStream BytesOutputStream]))
 
@@ -71,18 +74,33 @@
        result)))
 
 (defn bytestream->buf
+  "given a MemoryStream, returns a byte array"
   [stream]
   (.ToArray stream))
 
 (defn byte-buffer-seq
+  "realizes a byte array into a vector"
   [bb]
   (into [] bb))
 
 (defn byte-buf
+  "fressians an object and returns the byte array.
+   options are opts to (fressian ...)"
   [obj & options]
-  (let [baos (System.IO.MemoryStream.)]
+  (let [baos (MemoryStream.)]
     (apply fressian baos obj options)
     (bytestream->buf baos)))
+
+(defn read-batch
+  "Read a fressian reader fully (until eof), returning a (possibly empty)
+   vector of results."
+  [^Reader fin]
+  (let [sentinel (Object.)]
+    (loop [objects []]
+      (let [obj (try (.readObject fin) (catch System.IO.EndOfStreamException e sentinel))]
+        (if (= obj sentinel)
+          objects
+          (recur (conj objects obj)))))))
 
 (def clojure-write-handlers
   {clojure.lang.Keyword
@@ -117,88 +135,106 @@
            (clojure.lang.PersistentArrayMap. (.toArray kvs))
            (clojure.lang.PersistentHashMap/create (seq kvs))))))})
 
+(def clojure-equality-delegate
+  {"key"
+   #(let [vls (into [] (.Value %))]
+      (keyword (first vls) (second vls)))
+   "sym"
+   #(let [vls (into [] (.Value %))]
+      (symbol (first vls) (second vls)))})
 
 (defn roundtrip
   "Fressian and defressian o"
   ([o]
-     (defressian (System.IO.MemoryStream. (byte-buf o))))
+     (defressian (MemoryStream. (byte-buf o))))
   ([o write-handlers read-handlers]
-     (defressian
-        (System.IO.MemoryStream.
-         (byte-buf o :handlers write-handlers))
-        :handlers read-handlers
-        )))
+     (defressian (MemoryStream. (byte-buf o :handlers write-handlers))
+       :handlers read-handlers)))
 
-(defprotocol IEquality
-  (equals [a b]))
 
-(extend-type org.fressian.TaggedObject
-  IEquality
-  (equals [a b]
-    ;;(prn (into [] (.Value a)) b)
-    (= b (cond
-          (= (.Tag a) "key") (apply keyword (.Value a))
-          (= (.Tag a) "sym") (apply symbol (.Value a))
-          :else nil))))
+;; for the bad classes that don't do value equality (e.g. float)
+;; or don't work with data/diff (e.g. ByteBuffer)
+(defprotocol EqualityDelegate
+  (eqd [_] "nominate an object (usually this) to be used for equality comparison."))
 
-(extend-type System.Text.RegularExpressions.Regex
-  IEquality
-  (equals [a b] (= (.ToString a) (.ToString b))))
+(extend-protocol EqualityDelegate
+  nil
+  (eqd [n] n)
+  
+  org.fressian.TaggedObject
+  (eqd [o]
+    ((clojure-equality-delegate (.Tag o)) o)
+    ;; {:org.fressian/tag (.Tag o)
+    ;;  :org.fressian/value (into [] (.Value o))}
+    )
 
-(extend-type System.IO.MemoryStream
-  IEquality
-  (equals [a b] (= (into [] (.ToArray a))
-                   (into [] (.ToArray b)))))
+  System.Text.RegularExpressions.Regex
+  (eqd [p] (.ToString p))
+  
+  ;; System.Single
+  ;; (eqd [f] (if (= Single/Nan f) ::float-nan f))
 
-(extend-type System.Object
-  IEquality
-  (equals [a b] (= a b)))
+  ;; NOTE!!!! - clojrue-clr double hints seem to be broken
+  ;; System.Double
+  ;; (eqd [f] (if (= Double/NaN f) ::double-nan f))
 
+  System.IO.MemoryStream
+  (eqd [f] (into [] (.ToArray f)))
+  
+  Object
+  (eqd [o] o))
+
+;;FF - cannot extend float on clr!
+;; CompilerException clojure.lang.CljCompiler.Ast.ParseException: Only long and double primitives are supported: f
+;;    at clojure.lang.CljCompiler.Ast.FnMethod.Parse(FnExpr fn, ISeq form, Boolean isStatic) in D:\work\clojure-clr-1.4.1-fix\Clojure\Clojure\CljCompiler\Ast\FnMethod.cs:line 206
+;;    at clojure.lang.CljCompiler.Ast.FnExpr.Parse(ParserContext pcon, ISeq form, String name) in D:\work\clojure-clr-1.4.1-fix\Clojure\Clojure\CljCompiler\Ast\FnExpr.cs:line 173
+;; at clojure.lang.Compiler.AnalyzeSeq(ParserContext pcon, ISeq form, String name) in D:\work\clojure-clr-1.4.1-fix\Clojure\Clojure\CljCompiler\Compiler.cs:line 1558, compiling: (NO_SOURCE_PATH:6052)
+
+;; (extend-type System.Single
+;;   EqualityDelegate
+;;   (eqd [f] (if (= Single/NaN f) ::float-nan f)))
+
+;; work around limitations of walk/prewalk
 (extend-type (class (float-array 0))
-  IEquality
-  (equals [a b]
-    (= (into [] a) (into [] b))))
+  EqualityDelegate
+  (eqd [p] (into [] p)))
 
 (extend-type (class (double-array 0))
-  IEquality
-  (equals [a b]
-    (= (into [] a) (into [] b))))
+  EqualityDelegate
+  (eqd [p] (into [] p)))
 
 (extend-type (class (byte-array 0))
-  IEquality
-  (equals [a b]
-    (= (into [] a) (into [] b))))
+  EqualityDelegate
+  (eqd [p] (into [] p)))
 
 (extend-type (class (object-array 0))
-  IEquality
-  (equals [a b]
-    (= (into [] a) (into [] b))))
+  EqualityDelegate
+  (eqd [p] (into [] p)))
 
 (extend-type (class (long-array 0))
-  IEquality
-  (equals [a b]
-    (= (into [] a) (into [] b))))
+  EqualityDelegate
+  (eqd [p] (into [] p)))
 
 (extend-type (class (int-array 0))
-  IEquality
-  (equals [a b]
-    (= (into [] a) (into [] b))))
+  EqualityDelegate
+  (eqd [p] (into [] p)))
 
 (extend-type (class (boolean-array 0))
-  IEquality
-  (equals [a b]
-    (= (into [] a) (into [] b))))
+  EqualityDelegate
+  (eqd [p] (into [] p)))
 
-(extend-type nil
-  IEquality
-  (equals [a b] (and (nil? a) (nil? b))))
+(defmacro assert=
+  ([a b] `(assert= ~a ~b nil))
+  ([a b context]
+     `(let [a# (clojure.walk/prewalk eqd ~a) b# (clojure.walk/prewalk eqd ~b)]
+        (when-not (= a# b#)
+          (let [[d1# d2# s#] (clojure.data/diff a# b#)]
+            (when (or d1# d2#)
+              {:in-a d1# :in-b d2# :in-both s# :context ~context}))))))
 
-(extend-type |System.Collections.Generic.List`1[System.Object]|
-  IEquality
-  (equals [a b]
-    (= (into [] a) (into [] b))))
 
 
+;;; display protocol to help better view tagged objects during assertions
 (defprotocol IDisplay
   (display [o]))
 
@@ -218,11 +254,38 @@
 
 (extend-type |System.Collections.Generic.List`1[System.Object]|
   IDisplay
-  (display [o]
-    (into [] o)))
+  (display [o] (into [] o)))
 
+(extend-type (class (float-array 0))
+  IDisplay
+  (display [o] (into [] o)))
+
+(extend-type (class (double-array 0))
+  IDisplay
+  (display [o] (into [] o)))
+
+(extend-type (class (byte-array 0))
+  IDisplay
+  (display [o] (into [] o)))
+
+(extend-type (class (object-array 0))
+  IDisplay
+  (display [o] (into [] o)))
+
+(extend-type (class (long-array 0))
+  IDisplay
+  (display [o] (into [] o)))
+
+(extend-type (class (int-array 0))
+  IDisplay
+  (display [o] (into [] o)))
+
+(extend-type (class (boolean-array 0))
+  IDisplay
+  (display [o] (into [] o)))
 
 (defmacro deftest-times
+  "helper macro to create a test function that takes a [times] argument(number of times to run the test).  the generator is the data generator for use during the rountripping on each iteration"
   [name generator]
   `(defn ~name
      [times#]
@@ -231,9 +294,9 @@
              (try
                (let [o# (roundtrip i# clojure-write-handlers clojure-read-handlers)]
                  {:iteraton x#
-                  :input {:type (type i#) :val (display i#)}
-                  :output {:type (type o#) :val (display o#)}
-                  :result (equals i# o#)})
+                  :input {:type (type i#) :val (eqd i#)}
+                  :output {:type (type o#) :val (eqd o#)}
+                  :result (assert= i# o#)})
                (catch Exception ex#
                    {:iteraton x#
                     :input {:type (type i#) :val (display i#)}
@@ -241,26 +304,116 @@
                     :result :failed})))
           (range times#))))
 
+(defn show-failures
+  "helper function that will run test func and only pprint iterations that failed"
+  [testfn iters]
+  (pprint (filter #(or (not (nil? (:result %)))
+                       (= :failed (:result %))
+                       (= false (:result %)))
+                  (testfn iters))))
+
+(defn dump-failures
+  "helper function that will run test func and dump iterations that failed to a stream"
+  [testfn iters wtr]
+  (let [d (pr-str (filter #(or (not (nil? (:result %)))
+                               (= :failed (:result %))
+                               (= false (:result %)))
+                          (testfn iters)))]
+    (.Write wtr d)))
+
+(defn size
+  "Measure the size of a fressianed object. Returns a map of
+  :size, :second, :caching-size, and :cached-size.
+  (:second will differ from size if there is internal caching.)"
+  ([o] (size o nil))
+  ([o write-handlers]
+     (let [baos (MemoryStream.)
+           writer (create-writer baos write-handlers)]
+       (.writeObject writer o)
+       (let [size (.Length baos)]
+         (.writeObject writer o)
+         (let [second (- (.Length baos) size)]
+           (.writeObject writer o true)
+           (let [caching-size (- (.Length baos) second size)]
+             (.writeObject writer o true)
+             {:size size
+              :second second
+              :caching-size caching-size
+              #_:bytes #_(seq (.ToArray baos))
+              :cached-size (- (.Length baos) caching-size second size)}))))))
+
+(defn cache-session->fressian
+  "write-args are a series of [fressianble cache?] pairs."
+  [write-args]
+  (let [baos (MemoryStream.)
+        writer (create-writer baos)]
+    (doseq [[idx [obj cache]] (map-indexed vector write-args)]
+      (let [_ (.writeObject writer obj cache)])
+      (when (= 39 (mod idx 40)) (.writeFooter writer)))
+    (bytestream->buf baos)))
+
+(defn roundtrip-cache-session
+  "Roundtrip cache-session through fressian and back."
+  [cache-session]
+  (-> cache-session cache-session->fressian MemoryStream. create-reader read-batch))
+
+
+;;; helper deftest fn for cached use case
+(defmacro deftest-times-cached
+  [name generator]
+  `(defn ~name
+     [times#]
+     (map #(let [x# %1
+                 i# (if (fn? ~generator) (~generator) ~generator)]
+             (try
+               (let [o# (roundtrip-cache-session i#)]
+                 {:iteraton x#
+                  :input {:type (type i#) :val (map first i#)}
+                  :output {:type (type o#) :val o#}
+                  :result (assert= (map first i#) o#)})
+               (catch Exception ex#
+                   {:iteraton x#
+                    :input {:type (type i#) :val (display i#)}
+                    :output (.Message ex#)
+                    :result :failed})))
+          (range times#))))
+
+(defn compare-cache-and-uncached-versions
+  "For each o in objects, print o, its uncached value, and its cached value.
+   Used to verify cache skipping"
+  [objects]
+  (doseq [o objects]
+    (println o
+             " [Uncached:  "(byte-buffer-seq (cache-session->fressian [[o false]])) "]"
+             " [Cached: " (byte-buffer-seq (cache-session->fressian [[o true]])) "]")))
+
+;;;;;;;;;;;;;;;;;;;;;;;
+;; test fns
+
 (deftest-times test-fressian-character-encoding gen/single-char-string)
 (deftest-times test-fressian-scalars gen/scalar)
 (deftest-times test-fressian-builtins gen/fressian-builtin)
 (deftest-times test-fressian-int-packing gen/longs-near-powers-of-2)
 (deftest-times test-fressian-names gen/symbolic)
 
-(defn show-failures
-  [testfn iters]
-  (pprint (filter #(or (= :failed (:result %))
-                       (= false (:result %)))
-                  (testfn iters))))
+(deftest-times-cached test-fressian-strings-with-caching 
+  (fn [] (gen/cache-session (tgen/string))))
+(deftest-times-cached test-fressian-with-caching
+  (fn [] (gen/cache-session (gen/fressian-builtin))))
+
 
 (comment
 
   (show-failures test-fressian-character-encoding 1000)
   (show-failures test-fressian-scalars 10000)
-  (show-failures test-fressian-builtins 100)
+  (show-failures test-fressian-builtins 1000)
   (show-failures test-fressian-int-packing 1)
   (show-failures test-fressian-names 1000)
-  
+  ;;TODO: size check
+  (show-failures test-fressian-strings-with-caching 100)
+  (show-failures test-fressian-with-caching 1)
+
+  (with-open [wtr (System.IO.StreamWriter. "/Users/pairuser/tmp.clj")]
+    (dump-failures test-fressian-with-caching 1 wtr))
   
 )
-

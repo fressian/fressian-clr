@@ -160,7 +160,7 @@ namespace org.fressian.impl
                 int checksumFromStream = (int)readRawInt32();
                 if (calculatedChecksum != checksumFromStream)
                 {
-                    throw new ApplicationException(String.Format("Invalid footer checksum, expected %X got %X", calculatedChecksum, checksumFromStream));
+                    throw new ApplicationException(String.Format("Invalid footer checksum, expected {0} got {1}", calculatedChecksum, checksumFromStream));
                 }
             }
         }
