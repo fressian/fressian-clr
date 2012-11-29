@@ -75,7 +75,7 @@ namespace org.fressian.impl
         {
             if (o == null)
             {
-                //FF
+                //FF - c# dictionaries do not support null keys, this is part of the workaround
                 return typeof(Handlers.Null);
                 //return null;
             }
@@ -84,6 +84,7 @@ namespace org.fressian.impl
                 return o.GetType();
             }
         }
+
         public static int intCast(long x)
         {
             int i = (int)x;
@@ -124,7 +125,7 @@ namespace org.fressian.impl
                         }
                         break;
                     default:
-                        throw new ApplicationException(String.Format("Invalid UTF-8: %X", ch));
+                        throw new ApplicationException(String.Format("Invalid UTF-8: {0}", ch));
                 }
             }
         }

@@ -10,7 +10,7 @@ using System;
 
 namespace org.fressian.impl
 {
-    public class Codes
+    public static class Codes
     {
         public const int PRIORITY_CACHE_PACKED_START = 0x80;
         public const int PRIORITY_CACHE_PACKED_END = 0xA0;
@@ -36,7 +36,7 @@ namespace org.fressian.impl
         public const int PUT_PRIORITY_CACHE = 0xCD;
         public const int PRECACHE = 0xCE;
         public const int FOOTER = 0xCF;
-        public const int FOOTER_MAGIC = unchecked((int)0xCFCFCFCF); //FF ?? come back to this cast
+        public const int FOOTER_MAGIC = unchecked((int)0xCFCFCFCF); 
         public const int BYTES_PACKED_LENGTH_START = 0xD0;
         public const int BYTES_PACKED_LENGTH_END = 0xD8;
         public const int BYTES_CHUNK = 0xD8;

@@ -10,18 +10,19 @@
   (:import [System.IO MemoryStream]
            [org.fressian FressianWriter StreamingWriter FressianReader Writer Reader]
            [org.fressian.handlers WriteHandler ReadHandler WriteHandlerLookup]
-           [org.fressian.impl ByteBufferInputStream BytesOutputStream]))
+           [org.fressian.impl ByteBufferStream]))
 
 ;;(set! *warn-on-reflection* true)
 
-(defn as-write-lookup
-  "Normalize ILookup or map into an ILookup."
-  [o]
-  (if (map? o)
-    #_(reify |org.fressian.handlers.ILookup`2[System.Type,System.Collections.Generic.IDictionary`2[System.String,org.fressian.handlers.WriteHandler]]|
-        (valAt [_ k] (get o k)))
-    o
-    o))
+;; (defn as-write-lookup
+;;   "Normalize ILookup or map into an ILookup."
+;;   [o]
+;;   (if (map? o)
+;;     (reify |org.fressian.handlers.ILookup`2[System.Type,System.Collections.Generic.IDictionary`2[System.String,org.fressian.handlers.WriteHandler]]|
+;;         (valAt [_ k] (get o k)))
+;;     o))
+
+(defn as-write-lookup [o] o)
 
 (defn as-read-lookup
   "Normalize ILookup or map into an ILookup."
@@ -151,7 +152,6 @@
      (defressian (MemoryStream. (byte-buf o :handlers write-handlers))
        :handlers read-handlers)))
 
-
 ;; for the bad classes that don't do value equality (e.g. float)
 ;; or don't work with data/diff (e.g. ByteBuffer)
 (defprotocol EqualityDelegate
@@ -163,18 +163,17 @@
   
   org.fressian.TaggedObject
   (eqd [o]
-    ((clojure-equality-delegate (.Tag o)) o)
-    ;; {:org.fressian/tag (.Tag o)
-    ;;  :org.fressian/value (into [] (.Value o))}
-    )
+    ((clojure-equality-delegate (.Tag o)) o))
 
   System.Text.RegularExpressions.Regex
   (eqd [p] (.ToString p))
-  
+
+  ;; FF - only long and double primitives are supported
   ;; System.Single
   ;; (eqd [f] (if (= Single/Nan f) ::float-nan f))
 
   ;; NOTE!!!! - clojrue-clr double hints seem to be broken
+  ;;   https://groups.google.com/d/topic/clojure/vmNtYHB65fw/discussion
   ;; System.Double
   ;; (eqd [f] (if (= Double/NaN f) ::double-nan f))
 
@@ -232,58 +231,6 @@
             (when (or d1# d2#)
               {:in-a d1# :in-b d2# :in-both s# :context ~context}))))))
 
-
-
-;;; display protocol to help better view tagged objects during assertions
-(defprotocol IDisplay
-  (display [o]))
-
-(extend-type System.Object
-  IDisplay
-  (display [o] o))
-
-(extend-type org.fressian.TaggedObject
-  IDisplay
-  (display [o]
-    {:tag (.Tag o)
-     :value (into [] (.Value o))}))
-
-(extend-type nil
-  IDisplay
-  (display [o] o))
-
-(extend-type |System.Collections.Generic.List`1[System.Object]|
-  IDisplay
-  (display [o] (into [] o)))
-
-(extend-type (class (float-array 0))
-  IDisplay
-  (display [o] (into [] o)))
-
-(extend-type (class (double-array 0))
-  IDisplay
-  (display [o] (into [] o)))
-
-(extend-type (class (byte-array 0))
-  IDisplay
-  (display [o] (into [] o)))
-
-(extend-type (class (object-array 0))
-  IDisplay
-  (display [o] (into [] o)))
-
-(extend-type (class (long-array 0))
-  IDisplay
-  (display [o] (into [] o)))
-
-(extend-type (class (int-array 0))
-  IDisplay
-  (display [o] (into [] o)))
-
-(extend-type (class (boolean-array 0))
-  IDisplay
-  (display [o] (into [] o)))
-
 (defmacro deftest-times
   "helper macro to create a test function that takes a [times] argument(number of times to run the test).  the generator is the data generator for use during the rountripping on each iteration"
   [name generator]
@@ -299,7 +246,7 @@
                   :result (assert= i# o#)})
                (catch Exception ex#
                    {:iteraton x#
-                    :input {:type (type i#) :val (display i#)}
+                    :input {:type (type i#) :val (eqd i#)}
                     :output (.Message ex#)
                     :result :failed})))
           (range times#))))
@@ -373,7 +320,7 @@
                   :result (assert= (map first i#) o#)})
                (catch Exception ex#
                    {:iteraton x#
-                    :input {:type (type i#) :val (display i#)}
+                    :input {:type (type i#) :val (eqd i#)}
                     :output (.Message ex#)
                     :result :failed})))
           (range times#))))
@@ -411,7 +358,7 @@
   (show-failures test-fressian-names 1000)
   ;;TODO: size check
   (show-failures test-fressian-strings-with-caching 100)
-  (show-failures test-fressian-with-caching 1)
+  (show-failures test-fressian-with-caching 100)
 
   (with-open [wtr (System.IO.StreamWriter. "/Users/pairuser/tmp.clj")]
     (dump-failures test-fressian-with-caching 1 wtr))

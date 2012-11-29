@@ -17,8 +17,6 @@ namespace org.fressian.impl
 {
     public static class Handlers
     {
-        //ReadHandler -  Func<Reader, Object, int, object>
-        //WriteHandler - Action<Writer, object>
         public static readonly IDictionary<object, Int32> tagToCode;
         public static readonly IDictionary<object, ReadHandler> extendedReadHandlers;
         public static readonly ILookup<Type, IDictionary<String, WriteHandler>> coreWriteHandlers;
@@ -58,23 +56,6 @@ namespace org.fressian.impl
         {
             public static readonly Null Value = new Null();
             private Null() { }
-            
-            /*
-            public override bool Equals(object obj)
-            {
-                return obj.Equals(null);
-            }
-
-            public override int GetHashCode()
-            {
-                return 0;
-            }
-
-            public override string ToString()
-            {
-                return String.Empty;
-            }
-            //*/
         }
 
         static Handlers()
@@ -128,7 +109,7 @@ namespace org.fressian.impl
             installHandler(handlers, typeof(double), "double", new GenericWriteHandler<object>(new Action<Writer, object>((w, o) => w.writeDouble(o))));
             installHandler(handlers, typeof(float), "float", new GenericWriteHandler<object>(new Action<Writer, object>((w, o) => w.writeFloat(o))));
             installHandler(handlers, typeof(string), "string", new GenericWriteHandler<object>(new Action<Writer, object>((w, o) => w.writeString(o))));
-            //FF - cannot key on null!!!
+            //FF - c# dictionaries cannot key on null
             //installHandler(handlers, null, "null", new Action<Writer, object>((w, o) => w.writeNull()));
             installHandler(handlers, typeof(Null), "null", new GenericWriteHandler<object>(new Action<Writer, object>((w, o) => w.writeNull())));
             installHandler(handlers, (new int[] { }).GetType(), "int[]", new GenericWriteHandler<object>(new Action<Writer, object>((w, o) =>
@@ -198,7 +179,7 @@ namespace org.fressian.impl
                 w.writeTag(t.Tag, value.Length);
                 for (int n = 0; n < value.Length; n++)
                 {
-                    //FF
+                    //FF - c# dictionaries cannot have null keys, this is part of the workaround
                     var x = value[n];                    
                     w.writeObject(x==null ? Handlers.Null.Value : x);
                 }
@@ -221,7 +202,8 @@ namespace org.fressian.impl
             handlers["map"] = new GenericReadHandler<IDictionary<object, object>>(new Func<Reader, Object, int, IDictionary<object, object>>((r, t, c) =>
             {
                 IDictionary<object, object> m = new Dictionary<object, object>();
-                //FF ?? List kvs = (List) (RandomAccess) r.readObject();
+                //FF - java impl casted to RandomAccess for which there is no c# equivilent 
+                //List kvs = (List) (RandomAccess) r.readObject();
                 IList<object> kvs = (IList<object>)r.readObject();
                 for (int i = 0; i < kvs.Count; i += 2)
                 {
@@ -326,7 +308,7 @@ namespace org.fressian.impl
                 return new System.Numerics.BigInteger((byte[])r.readObject());
             }));
 
-            //FF find better sln later
+            //FF find sln later
             handlers["bigdec"] = new GenericReadHandler<object>(new Func<Reader, Object, int, object>((r, t, c) =>
             {
                 throw new NotSupportedException("BigDecimal is not supported on the CLR");
@@ -393,7 +375,7 @@ namespace org.fressian.impl
             })));
 
             //FF find sln later
-            //installHandler(handlers, typeof(IDictionary<object, object>), "bigdec", new Action<Writer, object>((w, o) =>
+            //installHandler(handlers, typeof(BigDecimal), "bigdec", new Action<Writer, object>((w, o) =>
             //{
             //    throw new NotSupportedException("BigDecimal is not supported on the CLR");
             //}));
@@ -440,7 +422,5 @@ namespace org.fressian.impl
                 return defaultWriteHandlers();
             }
         }
-
     }
-
 }

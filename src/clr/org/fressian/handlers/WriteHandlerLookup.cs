@@ -15,6 +15,8 @@ namespace org.fressian.handlers
 {
     public class WriteHandlerLookup : IWriteHandlerLookup
     {
+        private readonly ILookup<Type, IDictionary<String, WriteHandler>> chainedLookup;
+
         public static ILookup<Type, IDictionary<String, WriteHandler>> createLookupChain(ILookup<Type, IDictionary<String, WriteHandler>> userHandlers)
         {
             if (userHandlers != null)
@@ -28,8 +30,6 @@ namespace org.fressian.handlers
             }
         }
 
-        // throws an exception if writer does not exist or does not match tag.
-        //  Pass null tag to skip tag check.
         public WriteHandler getWriteHandler(String tag, Object o)
         {
             IDictionary<String, WriteHandler> h = Fns.lookup<Type, IDictionary<string, WriteHandler>>(chainedLookup, Fns.getClassOrNull(o));
@@ -54,12 +54,9 @@ namespace org.fressian.handlers
             return handler;
         }
 
-        private readonly ILookup<Type, IDictionary<String, WriteHandler>> chainedLookup;
-
         public WriteHandlerLookup(ILookup<Type, IDictionary<String, WriteHandler>> userHandlers)
         {
             this.chainedLookup = WriteHandlerLookup.createLookupChain(userHandlers);
         }
     }
-
 }

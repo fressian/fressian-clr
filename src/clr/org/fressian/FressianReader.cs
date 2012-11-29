@@ -20,13 +20,26 @@ namespace org.fressian
 {
     public class FressianReader : Reader, IDisposable
     {
+        public static readonly IDictionary<object, object> coreHandlers;
+
+        static FressianReader()
+        {
+            IDictionary<object, object> handlers = new Dictionary<object, object>();
+            handlers.Add("list", new Func<Object[], IList>(x => x.ToList()));
+            handlers.Add("bytes", new Func<byte[], Object>(x => x));
+            handlers.Add("double", new Func<double, Object>(x => x));
+            handlers.Add("float", new Func<float, Object>(x => x));
+            coreHandlers = new ImmutableDictionary<object, object>(handlers);
+        }
+
         private readonly RawInput rawInput;
         private ArrayList priorityCache;
         private ArrayList structCache;
-        public readonly IDictionary<object, ReadHandler> standardExtensionHandlers;
         private readonly org.fressian.handlers.ILookup<Object, ReadHandler> handlerLookup;
         private byte[] byteBuffer;
-
+        
+        public readonly IDictionary<object, ReadHandler> standardExtensionHandlers;
+        
         public FressianReader(Stream istream)
             : this(istream, null, true)
         {
@@ -83,7 +96,6 @@ namespace org.fressian
             int code = readNextCode();
             switch (code)
             {
-
                 //INT_PACKED_1_FIRST
                 case 0xFF:
                     result = -1;
@@ -212,7 +224,6 @@ namespace org.fressian
                     result = ((long)(code - Codes.INT_PACKED_3_ZERO) << 16) | rawInput.readRawInt16();
                     break;
 
-
                 //  INT_PACKED_4_FIRST
                 case 0x70:
                 case 0x71:
@@ -220,7 +231,6 @@ namespace org.fressian
                 case 0x73:
                     result = ((long)(code - Codes.INT_PACKED_4_ZERO << 24)) | rawInput.readRawInt24();
                     break;
-
 
                 //  INT_PACKED_5_FIRST
                 case 0x74:
@@ -308,7 +318,6 @@ namespace org.fressian
             Object result;
             switch (code)
             {
-
                 //INT_PACKED_1_FIRST
                 case 0xFF:
                     result = -1L;
@@ -726,7 +735,6 @@ namespace org.fressian
             ReadHandler h = Fns.lookup<object, ReadHandler>(handlerLookup, tag);
             if (h == null)
             {   
-                //h = standardExtensionHandlers[tag.ToString()]; //FF ?? 
                 if (standardExtensionHandlers.ContainsKey(tag))
                     h = standardExtensionHandlers[tag];
             }
@@ -918,24 +926,24 @@ namespace org.fressian
             }
         }
 
-        //FF - need immutable keyval pair ??
+        //FF - do we need an immutable keyval pair ??
         //static class MapEntry : Map.Entry {
         //    public readonly Object key;
         //    public readonly Object value;
-
+        //
         //    public MapEntry(Object key, Object value) {
         //        this.key = key;
         //        this.value = value;
         //    }
-
+        //
         //    public Object getKey() {
         //        return key;
         //    }
-
+        //
         //    public Object getValue() {
         //        return value;
         //    }
-
+        //
         //    public Object setValue(Object o) {
         //        throw new NotSupportedException();
         //    }
@@ -970,12 +978,12 @@ namespace org.fressian
         {
             if (magicFromStream != Codes.FOOTER_MAGIC)
             {
-                throw new ApplicationException(String.Format("Invalid footer magic, expected %X got %X", Codes.FOOTER_MAGIC, magicFromStream));
+                throw new ApplicationException(String.Format("Invalid footer magic, expected {0} got {1}", Codes.FOOTER_MAGIC, magicFromStream));
             }
             int lengthFromStream = (int)rawInput.readRawInt32();
             if (lengthFromStream != calculatedLength)
             {
-                throw new ApplicationException(String.Format("Invalid footer length, expected %X got %X", calculatedLength, lengthFromStream));
+                throw new ApplicationException(String.Format("Invalid footer length, expected {0} got {1}", calculatedLength, lengthFromStream));
             }
             rawInput.validateChecksum();
             rawInput.reset();
@@ -1020,23 +1028,6 @@ namespace org.fressian
             cache[index] = o;
             return o;
         }
-
-        public static readonly IDictionary<object, object> coreHandlers;
-
-        static FressianReader()
-        {
-            IDictionary<object, object> handlers = new Dictionary<object, object>();
-            handlers.Add("list", new Func<Object[], IList>(x => x.ToList()));
-            handlers.Add("bytes", new Func<byte[], Object>(x => x));
-            handlers.Add("double", new Func<double, Object>(x => x));
-            handlers.Add("float", new Func<float, Object>(x => x));
-            coreHandlers = new ImmutableDictionary<object, object>(handlers);
-        }
-
-        //public void close()
-        //{
-        //    istream.close();
-        //}
 
         public void Dispose()
         {

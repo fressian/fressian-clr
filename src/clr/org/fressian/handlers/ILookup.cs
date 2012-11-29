@@ -14,9 +14,4 @@ namespace org.fressian.handlers
     {
         V valAt(K key);
     }
-
-    public interface ILookup
-    {
-        object valAt(object key);
-    }
 }

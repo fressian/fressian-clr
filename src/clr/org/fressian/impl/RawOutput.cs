@@ -126,12 +126,7 @@ namespace org.fressian.impl
         {
             bytesWritten = bytesWritten + count;
         }
-
-        //public void close()
-        //{
-        //    os.Close();
-        //}
-
+       
         public void Dispose()
         {
             _checkedStream.Close();

@@ -28,6 +28,11 @@ namespace org.fressian
             this._checksum = adler32(this._checksum, buffer, offset, count);
         }
 
+        #region
+        /*
+        Adapted from the wikipedia article:
+            http://en.wikipedia.org/wiki/Adler-32
+        */
         private const int MOD_ADLER = 65521;
 
         internal long adler32(long adler, byte[] data, int index, int len) 
@@ -45,5 +50,6 @@ namespace org.fressian
  
             return (b << 16) | a;
         }
+        #endregion
     }
 }

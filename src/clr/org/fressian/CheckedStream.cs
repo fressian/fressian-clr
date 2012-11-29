@@ -53,11 +53,7 @@ namespace org.fressian
             var b = this._stream.ReadByte();
             if(b != -1)
                 this._checksum.Update(new byte[] { (byte)b }, 0, 1);
-            return b;
-            
-            //this._checksum.Update(buffer, offset, count);
-            //return this._stream.Read(buffer, offset, count);
-            //return base.ReadByte();
+            return b;            
         }
 
         public override void Write(byte[] buffer, int offset, int count)

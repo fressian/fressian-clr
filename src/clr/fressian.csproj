@@ -47,6 +47,7 @@
     <Compile Include="org\fressian\handlers\WriteHandler.cs" />
     <Compile Include="org\fressian\Checksum.cs" />
     <Compile Include="org\fressian\ImmutableDictionary.cs" />
+    <Compile Include="org\fressian\impl\ByteBufferStream.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -57,8 +58,6 @@
     <Compile Include="org\fressian\handlers\ILookup.cs" />
     <Compile Include="org\fressian\handlers\IWriteHandlerLookup.cs" />
     <Compile Include="org\fressian\handlers\WriteHandlerLookup.cs" />
-    <Compile Include="org\fressian\impl\ByteBufferInputStream.cs" />
-    <Compile Include="org\fressian\impl\BytesOutputStream.cs" />
     <Compile Include="org\fressian\impl\CachingLookup.cs" />
     <Compile Include="org\fressian\impl\ChainedLookup.cs" />
     <Compile Include="org\fressian\impl\Codes.cs" />

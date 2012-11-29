@@ -10,7 +10,7 @@ using System;
 
 namespace org.fressian.impl
 {
-    public class Ranges
+    public static class Ranges
     {
         public static readonly ulong PACKED_1_START = 0L;
         public static readonly ulong PACKED_1_END = 64;

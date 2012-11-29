@@ -16,9 +16,5 @@ namespace org.fressian
         Object Tag { get; }
         Object[] Value { get; }
         IDictionary Meta { get; }
-
-        //Object getTag();
-        //Object[] getValue();
-        //IDictionary getMeta();
     }
 }

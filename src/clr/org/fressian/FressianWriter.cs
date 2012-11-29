@@ -37,7 +37,7 @@ namespace org.fressian
         public FressianWriter(Stream stream, org.fressian.handlers.ILookup<Type, IDictionary<String, WriteHandler>> userHandlers)
         {
             this.writeHandlerLookup = new WriteHandlerLookup(userHandlers);
-            
+
             clearCaches();
             this.stream = stream;
             this.rawOut = new RawOutput(this.stream);
@@ -68,7 +68,7 @@ namespace org.fressian
             }
             else
             {
-                this.writeHandlerLookup =  new WriteHandlerLookup(Handlers.defaultWriteHandlers());
+                this.writeHandlerLookup = new WriteHandlerLookup(Handlers.defaultWriteHandlers());
             }
             clearCaches();
             this.stream = stream;
@@ -102,7 +102,6 @@ namespace org.fressian
                 return this;
             }
 
-            //writeBoolean(((Boolean) o).booleanValue());
             writeBoolean(Convert.ToBoolean(o));
             return this;
         }
@@ -120,7 +119,6 @@ namespace org.fressian
                 writeNull();
                 return this;
             }
-            // writeInt(((Number) o).longValue());
             writeInt(Convert.ToInt64(o));
             return this;
         }
@@ -145,7 +143,6 @@ namespace org.fressian
 
         public Writer writeDouble(Object o)
         {
-            //writeDouble(((Number) o).doubleValue());
             writeDouble(Convert.ToDouble(o));
             return this;
         }
@@ -250,7 +247,7 @@ namespace org.fressian
         }
 
         public Writer writeBytes(byte[] b, int offset, int length)
-        { 
+        {
             if (length < Ranges.BYTES_PACKED_LENGTH_END)
             {
                 rawOut.writeRawByte((int)(Codes.BYTES_PACKED_LENGTH_START + length));
@@ -278,16 +275,6 @@ namespace org.fressian
             if (rawOut.getBytesWritten() != 0)
                 throw new InvalidOperationException("writeFooterFor can only be called at a footer boundary.");
             byte[] bytes = bb.ToArray();
-
-            //FF
-            //ByteBuffer source = bb.duplicate();
-            //byte[] bytes;
-            //if (source.hasArray()) {
-            //    bytes = source.array();
-            //} else {
-            //    bytes = new byte[source.remaining()];
-            //    source.get(bytes);
-            //}
 
             rawOut.getChecksum().Update(bytes, 0, bytes.Length);
             internalWriteFooter(bytes.Length);
@@ -343,9 +330,9 @@ namespace org.fressian
 
         public Writer writeTag(Object tag, int componentCount)
         {
-            int shortcutCode = Handlers.tagToCode[tag];
-            if (shortcutCode != null)
+            if (Handlers.tagToCode.ContainsKey(tag))
             {
+                int shortcutCode = Handlers.tagToCode[tag];
                 writeCode(shortcutCode);
             }
             else
@@ -371,7 +358,7 @@ namespace org.fressian
         }
 
         public Writer writeExt(Object tag, params object[] fields)
-        { 
+        {
             writeTag(tag, fields.Length);
             for (int n = 0; n < fields.Length; n++)
             {
@@ -381,7 +368,7 @@ namespace org.fressian
         }
 
         public void writeCount(int count)
-        { 
+        {
             writeInt(count);
         }
 
@@ -393,12 +380,12 @@ namespace org.fressian
         }
 
         private void internalWriteInt(long i)
-        { 
+        {
             switch (bitSwitch(i))
             {
-                //FF??
+                //FF - added case 0
                 case 0:
-                
+
                 case 1:
                 case 2:
                 case 3:
@@ -529,7 +516,6 @@ namespace org.fressian
                         return true;
                     default:
                         return false;
-
                 }
             }
             else if (o is String)
@@ -628,11 +614,6 @@ namespace org.fressian
             rawOut.reset();
             return this;
         }
-
-        //public void close()
-        //{
-        //    rawOut.close();
-        //}
 
         public void Dispose()
         {
