@@ -21,7 +21,6 @@ namespace org.fressian.impl
 
         public RawInput(Stream stream) : this(stream, true)
         {
-
         }
 
         public RawInput(Stream stream, bool validateAdler)
