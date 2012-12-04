@@ -17,60 +17,62 @@ namespace org.fressian.impl
     {
         private readonly CheckedStream _checkedStream;
         private int bytesWritten;
+        private BinaryWriter writer;
 
         public RawOutput(Stream stream)
         {
             this._checkedStream = new CheckedStream(stream, new Adler32());
+            this.writer = new BinaryWriter(this._checkedStream);
         }
 
         public void writeRawByte(int b)
         {
-            _checkedStream.WriteByte((byte)b);
+            this.writer.Write((byte)b);
             notifyBytesWritten(1);
         }
 
         public void writeRawInt16(int s)
         {
-            _checkedStream.WriteByte((byte)(((uint)s >> 8) & 0xFF));
-            _checkedStream.WriteByte((byte)(s & 0xFF));
+            this.writer.Write((byte)(((uint)s >> 8) & 0xFF));
+            this.writer.Write((byte)(s & 0xFF));
             notifyBytesWritten(2);
         }
 
         public void writeRawInt24(int i)
         {
-            _checkedStream.WriteByte((byte)(((uint)i >> 16) & 0xFF));
-            _checkedStream.WriteByte((byte)(((uint)i >> 8) & 0xFF));
-            _checkedStream.WriteByte((byte)(i & 0xFF));
+            this.writer.Write((byte)(((uint)i >> 16) & 0xFF));
+            this.writer.Write((byte)(((uint)i >> 8) & 0xFF));
+            this.writer.Write((byte)(i & 0xFF));
             notifyBytesWritten(3);
         }
 
         public void writeRawInt32(int i)
         {
-            _checkedStream.WriteByte((byte)(((uint)i >> 24) & 0xFF));
-            _checkedStream.WriteByte((byte)(((uint)i >> 16) & 0xFF));
-            _checkedStream.WriteByte((byte)(((uint)i >> 8) & 0xFF));
-            _checkedStream.WriteByte((byte)((uint)i & 0xFF));
+            this.writer.Write((byte)(((uint)i >> 24) & 0xFF));
+            this.writer.Write((byte)(((uint)i >> 16) & 0xFF));
+            this.writer.Write((byte)(((uint)i >> 8) & 0xFF));
+            this.writer.Write((byte)((uint)i & 0xFF));
             notifyBytesWritten(4);
         }
 
         public void writeRawInt40(long i)
         {
-            _checkedStream.WriteByte((byte)(((ulong)i >> 32) & 0xFF));
-            _checkedStream.WriteByte((byte)(((ulong)i >> 24) & 0xFF));
-            _checkedStream.WriteByte((byte)(((ulong)i >> 16) & 0xFF));
-            _checkedStream.WriteByte((byte)(((ulong)i >> 8) & 0xFF));
-            _checkedStream.WriteByte((byte)((ulong)i & 0xFF));
+            this.writer.Write((byte)(((ulong)i >> 32) & 0xFF));
+            this.writer.Write((byte)(((ulong)i >> 24) & 0xFF));
+            this.writer.Write((byte)(((ulong)i >> 16) & 0xFF));
+            this.writer.Write((byte)(((ulong)i >> 8) & 0xFF));
+            this.writer.Write((byte)((ulong)i & 0xFF));
             notifyBytesWritten(5);
         }
 
         public void writeRawInt48(long i)
         {
-            _checkedStream.WriteByte((byte)(((ulong)i >> 40) & 0xFF));
-            _checkedStream.WriteByte((byte)(((ulong)i >> 32) & 0xFF));
-            _checkedStream.WriteByte((byte)(((ulong)i >> 24) & 0xFF));
-            _checkedStream.WriteByte((byte)(((ulong)i >> 16) & 0xFF));
-            _checkedStream.WriteByte((byte)(((ulong)i >> 8) & 0xFF));
-            _checkedStream.WriteByte((byte)((ulong)i & 0xFF));
+            this.writer.Write((byte)(((ulong)i >> 40) & 0xFF));
+            this.writer.Write((byte)(((ulong)i >> 32) & 0xFF));
+            this.writer.Write((byte)(((ulong)i >> 24) & 0xFF));
+            this.writer.Write((byte)(((ulong)i >> 16) & 0xFF));
+            this.writer.Write((byte)(((ulong)i >> 8) & 0xFF));
+            this.writer.Write((byte)((ulong)i & 0xFF));
             notifyBytesWritten(6);
         }
 
@@ -86,7 +88,7 @@ namespace org.fressian.impl
             buffer[5] = (byte)((ulong)l >> 16);
             buffer[6] = (byte)((ulong)l >> 8);
             buffer[7] = (byte)((ulong)l >> 0);
-            _checkedStream.Write(buffer, 0, 8);
+            this.writer.Write(buffer, 0, 8);
             notifyBytesWritten(8);
         }
 
@@ -102,13 +104,13 @@ namespace org.fressian.impl
 
         public void writeRawBytes(byte[] bytes, int off, int len)
         {
-            _checkedStream.Write(bytes, off, len);
+            this.writer.Write(bytes, off, len);
             notifyBytesWritten(len);
         }
 
-        public Checksum getChecksum()
+        public Checksum GetChecksum()
         {
-            return _checkedStream.GetChecksum();
+            return this._checkedStream.GetChecksum();
         }
 
         public int getBytesWritten()
@@ -116,10 +118,10 @@ namespace org.fressian.impl
             return bytesWritten;
         }
 
-        public void reset()
+        public void Reset()
         {
             bytesWritten = 0;
-            getChecksum().Reset();
+            this.GetChecksum().Reset();
         }
 
         private void notifyBytesWritten(int count)
@@ -129,7 +131,7 @@ namespace org.fressian.impl
        
         public void Dispose()
         {
-            _checkedStream.Close();
+            this.writer.Close();
         }
     }
 }

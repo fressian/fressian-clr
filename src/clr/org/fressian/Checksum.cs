@@ -4,7 +4,7 @@ namespace org.fressian
 {
 	public interface Checksum
 	{
-        long GetValue();		
+        long Value { get; }		
 		void Reset();
 		void Update(byte[] buffer, int offset, int count);
 	}

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 
 using org.fressian;
 
@@ -13,19 +14,19 @@ namespace org.fressian
             this._checksum = 1;
         }
 
-        public long GetValue()
+        public long Value
         {
-            return this._checksum;
+            get { return this._checksum; }
         }
 
         public void Reset()
         {
-            this._checksum = 1;
+            this._checksum = 1;            
         }
 
         public void Update(byte[] buffer, int offset, int count)
         {
-            this._checksum = adler32(this._checksum, buffer, offset, count);
+            this._checksum = adler32(this._checksum, buffer, offset, count);            
         }
 
         #region
@@ -35,7 +36,7 @@ namespace org.fressian
         */
         private const int MOD_ADLER = 65521;
 
-        internal long adler32(long adler, byte[] data, int index, int len) 
+        public static long adler32(long adler, byte[] data, int index, int len) 
         {
             //long a = 1;
             //long b = 0;

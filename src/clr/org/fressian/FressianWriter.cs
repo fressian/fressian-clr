@@ -25,8 +25,8 @@ namespace org.fressian
         private byte[] stringBuffer;
         IWriteHandlerLookup writeHandlerLookup;
 
-        public FressianWriter(Stream ostream)
-            : this(ostream, Handlers.defaultWriteHandlers())
+        public FressianWriter(Stream stream)
+            : this(stream, Handlers.defaultWriteHandlers())
         {
         }
 
@@ -276,7 +276,7 @@ namespace org.fressian
                 throw new InvalidOperationException("writeFooterFor can only be called at a footer boundary.");
             byte[] bytes = bb.ToArray();
 
-            rawOut.getChecksum().Update(bytes, 0, bytes.Length);
+            rawOut.GetChecksum().Update(bytes, 0, bytes.Length);
             internalWriteFooter(bytes.Length);
         }
 
@@ -291,8 +291,8 @@ namespace org.fressian
         {
             rawOut.writeRawInt32(Codes.FOOTER_MAGIC);
             rawOut.writeRawInt32(length);
-            rawOut.writeRawInt32((int)rawOut.getChecksum().GetValue());
-            rawOut.reset();
+            rawOut.writeRawInt32((int)rawOut.GetChecksum().Value);
+            rawOut.Reset();
         }
 
         private void clearCaches()
@@ -611,7 +611,7 @@ namespace org.fressian
             if (0 != rawOut.getBytesWritten())
                 throw new InvalidOperationException("openList must be called from the top level, outside any footer context.");
             writeCode(Codes.BEGIN_OPEN_LIST);
-            rawOut.reset();
+            rawOut.Reset();
             return this;
         }
 

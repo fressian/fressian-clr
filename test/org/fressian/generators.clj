@@ -134,6 +134,10 @@
               gen/double
               nil))
 
+(defn fressian-float-array
+  []
+  (gen/float-array gen/float))
+
 (defn cache-session
   "Generate a sequence of [fressianable cache?] args for testing
    caching. Lots of duplication of fressianable. "

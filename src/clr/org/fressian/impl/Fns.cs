@@ -276,6 +276,5 @@ namespace org.fressian.impl
         {
             return BitConverter.ToInt32(BitConverter.GetBytes(v), 0);
         }
-
     }
 }

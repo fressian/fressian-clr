@@ -40,22 +40,22 @@ namespace org.fressian
         
         public readonly IDictionary<object, ReadHandler> standardExtensionHandlers;
         
-        public FressianReader(Stream istream)
-            : this(istream, null, true)
+        public FressianReader(Stream stream)
+            : this(stream, null, true)
         {
 
         }
 
-        public FressianReader(Stream istream, org.fressian.handlers.ILookup<Object, ReadHandler> handlerLookup)
-            : this(istream, handlerLookup, true)
+        public FressianReader(Stream stream, org.fressian.handlers.ILookup<Object, ReadHandler> handlerLookup)
+            : this(stream, handlerLookup, true)
         {
 
         }
 
-        public FressianReader(Stream istream, org.fressian.handlers.ILookup<Object, ReadHandler> handlerLookup, bool validateAdler)
+        public FressianReader(Stream stream, org.fressian.handlers.ILookup<Object, ReadHandler> handlerLookup, bool validateAdler)
         {
             standardExtensionHandlers = Handlers.extendedReadHandlers;
-            this.rawInput = new RawInput(istream, validateAdler);
+            this.rawInput = new RawInput(stream, validateAdler);
             this.handlerLookup = handlerLookup;
             resetCaches();
         }
@@ -986,7 +986,7 @@ namespace org.fressian
                 throw new ApplicationException(String.Format("Invalid footer length, expected {0} got {1}", calculatedLength, lengthFromStream));
             }
             rawInput.validateChecksum();
-            rawInput.reset();
+            rawInput.Reset();
             resetCaches();
         }
 

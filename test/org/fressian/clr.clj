@@ -18,7 +18,8 @@
 ;;   "Normalize ILookup or map into an ILookup."
 ;;   [o]
 ;;   (if (map? o)
-;;     (reify |org.fressian.handlers.ILookup`2[System.Type,System.Collections.Generic.IDictionary`2[System.String,org.fressian.handlers.WriteHandler]]|
+;;     (reify |System.Collections.Generic.IDictionary`2[System.Type,System.Object]|)
+;;     #_(reify |org.fressian.handlers.ILookup`2[System.Type,System.Collections.Generic.IDictionary`2[System.String,org.fressian.handlers.WriteHandler]]|
 ;;         (valAt [_ k] (get o k)))
 ;;     o))
 
@@ -38,7 +39,7 @@
   ;; TODO: make symmetric with create-reader, using io/output-stream?
   ([out] (create-writer out nil))
   ([out lookup]
-     (FressianWriter. out (as-write-lookup lookup) true)))
+     (FressianWriter. out lookup true)))
 
 (defn ^Reader create-reader
   "Create a fressian reader targetting in, which must be compatible
@@ -132,9 +133,7 @@
    (reify org.fressian.handlers.ReadHandler
      (read [_ rdr tag component-count]
        (let [kvs (.readObject rdr)]
-         (if (< (.Count kvs) 16)
-           (clojure.lang.PersistentArrayMap. (.toArray kvs))
-           (clojure.lang.PersistentHashMap/create (seq kvs))))))})
+         (clojure.lang.PersistentHashMap/create (seq kvs)))))})
 
 (def clojure-equality-delegate
   {"key"
@@ -253,11 +252,12 @@
 
 (defn show-failures
   "helper function that will run test func and only pprint iterations that failed"
-  [testfn iters]
-  (pprint (filter #(or (not (nil? (:result %)))
-                       (= :failed (:result %))
-                       (= false (:result %)))
-                  (testfn iters))))
+  ([testfn iters] (show-failures iters false))
+  ([testfn iters cache?]
+     (pprint (filter #(or (not (nil? (:result %)))
+                          (= :failed (:result %))
+                          (= false (:result %)))
+                     (testfn iters cache?)))))
 
 (defn dump-failures
   "helper function that will run test func and dump iterations that failed to a stream"
@@ -334,6 +334,46 @@
              " [Uncached:  "(byte-buffer-seq (cache-session->fressian [[o false]])) "]"
              " [Cached: " (byte-buffer-seq (cache-session->fressian [[o true]])) "]")))
 
+(defn roundtrip-socket
+  [host port obj cache?]
+  (let [sock (System.Net.Sockets.TcpClient.)
+        _ (.Connect sock (System.Net.IPEndPoint. (System.Net.IPAddress/Parse host) port))
+        stream (.GetStream sock)
+        br (System.IO.BinaryReader. stream)
+        bw (System.IO.BinaryWriter. stream)
+        n (BitConverter/GetBytes (long 1))
+        _ (Array/Reverse n)]
+    (.Write bw n)
+    (.ReadBytes br 8) ; need to check if the long read is equal to (count objs)
+    (let [wtr (create-writer stream clojure-write-handlers)
+          rdr (create-reader stream clojure-read-handlers true)]
+      (.writeObject wtr obj cache?)
+      (.writeFooter wtr)
+      (let [ret (.readObject rdr)]
+        (.validateFooter rdr)
+        ret))))
+
+(defmacro deftest-times-socket
+  "helper macro to create a test function that takes a [times] argument(number of times to run the test).  the generator is the data generator for use during the rountripping on each iteration"
+  [name generator host port]
+  `(defn ~name
+     ([times#] (~name times# false))
+     ([times# cache?#]
+        (map #(let [x# %1
+                    i# (if (fn? ~generator) (~generator) ~generator)]
+                (try
+                  (let [o# (roundtrip-socket ~host ~port i# cache?#)]
+                    {:iteraton x#
+                     :input {:type (type i#) :val (eqd i#)}
+                     :output {:type (type o#) :val (eqd o#)}
+                     :result (assert= i# o#)})
+                  (catch Exception ex#
+                    {:iteraton x#
+                     :input {:type (type i#) :val (eqd i#)}
+                     :output (.Message ex#)
+                     :result :failed})))
+             (range times#)))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;
 ;; test fns
 
@@ -348,6 +388,19 @@
 (deftest-times-cached test-fressian-with-caching
   (fn [] (gen/cache-session (gen/fressian-builtin))))
 
+;; (deftest-times-socket test-fressian-character-encoding-socket
+;;   gen/single-char-string "127.0.0.1" 19876)
+;; (deftest-times-socket test-fressian-scalars-socket gen/scalar "127.0.0.1" 19876)
+;; (deftest-times-socket test-fressian-builtins-socket gen/fressian-builtin "127.0.0.1" 19876)
+;; ;;(deftest-times-socket test-fressian-float-array)
+;; (deftest-times-socket test-fressian-int-packing-socket gen/longs-near-powers-of-2 "127.0.0.1" 19876);; (deftest-times-socket test-fressian-names-socket gen/symbolic "127.0.0.1" 19876)
+
+(deftest-times-socket test-fressian-character-encoding-socket
+  gen/single-char-string "10.40.5.142" 19876)
+(deftest-times-socket test-fressian-scalars-socket gen/scalar "10.40.5.142" 19876)
+(deftest-times-socket test-fressian-builtins-socket gen/fressian-builtin "10.40.5.142" 19876)
+(deftest-times-socket test-fressian-int-packing-socket gen/longs-near-powers-of-2 "10.40.5.142" 19876)
+(deftest-times-socket test-fressian-names-socket gen/symbolic "10.40.5.142" 19876)
 
 (comment
 
@@ -363,4 +416,18 @@
   (with-open [wtr (System.IO.StreamWriter. "/Users/pairuser/tmp.clj")]
     (dump-failures test-fressian-with-caching 1 wtr))
   
-)
+  (show-failures test-fressian-character-encoding-socket 1000)
+  (show-failures test-fressian-scalars-socket 10)
+  (show-failures test-fressian-builtins-socket 100)
+  (show-failures test-fressian-int-packing-socket 1)
+  (show-failures test-fressian-names-socket 1000)
+
+  ;; test caching
+  (show-failures test-fressian-character-encoding-socket 1000 true)
+  (show-failures test-fressian-scalars-socket 10 true)
+  (show-failures test-fressian-builtins-socket 100 true)
+  (show-failures test-fressian-int-packing-socket 1 true)
+  (show-failures test-fressian-names-socket 1000 true)
+
+
+  )
