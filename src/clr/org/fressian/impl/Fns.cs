@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Numerics;
 
 using org.fressian.handlers;
 
@@ -275,6 +276,55 @@ namespace org.fressian.impl
         public static int SingleToInt32Bits(this float v)
         {
             return BitConverter.ToInt32(BitConverter.GetBytes(v), 0);
+        }
+
+        public static Tuple<byte[], int> UnscaledValues(this decimal val)
+        {
+            int[] ints = Decimal.GetBits(val);
+            byte[] bytes = new byte[12];
+            bytes[0] = ((byte)((ints[0] >> 0) & 0xFF));
+            bytes[1] = ((byte)((ints[0] >> 8) & 0xFF));
+            bytes[2] = ((byte)((ints[0] >> 16) & 0xFF));
+            bytes[3] = ((byte)((ints[0] >> 24) & 0xFF));
+            bytes[4] = ((byte)((ints[1] >> 0) & 0xFF));
+            bytes[5] = ((byte)((ints[1] >> 8) & 0xFF));
+            bytes[6] = ((byte)((ints[1] >> 16) & 0xFF));
+            bytes[7] = ((byte)((ints[1] >> 24) & 0xFF));
+            bytes[8] = ((byte)((ints[2] >> 0) & 0xFF));
+            bytes[9] = ((byte)((ints[2] >> 8) & 0xFF));
+            bytes[10] = ((byte)((ints[2] >> 16) & 0xFF));
+            bytes[11] = ((byte)((ints[2] >> 24) & 0xFF));
+
+            BigInteger signed = val < 0 ? -(new BigInteger(bytes)) : new BigInteger(bytes);
+            byte[] unscaledbytes = signed.ToByteArray();
+            Array.Reverse(unscaledbytes);            
+            var scale = (ints[3] >> 16) & 0xFF;
+            return new Tuple<byte[], int>(unscaledbytes, scale);
+        }
+
+        public static Decimal DecimalValueFrom(byte[] d, int s)
+        {
+            Array.Reverse(d);
+            BigInteger signed = new BigInteger(d);
+            BigInteger unscaled = signed < 0 ? -signed : signed;
+            if (s < 0)
+            {
+                unscaled = unscaled * BigInteger.Pow(BigInteger.One, -s + 1);
+                s = 0;
+            }
+            byte[] bytes = unscaled.ToByteArray();
+
+            if (bytes.Length > 12 || s > 28)
+                throw new OverflowException("The BigDecimal is too big for a 96 bit CLR decimal");
+
+            byte[] buf = new byte[12];
+            Array.Copy(bytes, 0, buf, 0, bytes.Length);
+
+            int lo = buf[0] << 0 | buf[1] << 8 | buf[2] << 16 | buf[3] << 24;
+            int mid = buf[4] << 0 | buf[5] << 8 | buf[6] << 16 | buf[7] << 24;
+            int hi = buf[8] << 0 | buf[9] << 8 | buf[10] << 16 | buf[11] << 24;
+
+            return new Decimal(lo, mid, hi, signed.Sign < 0, (byte)s);
         }
     }
 }

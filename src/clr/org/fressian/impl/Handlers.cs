@@ -308,29 +308,11 @@ namespace org.fressian.impl
                 return new System.Numerics.BigInteger((byte[])r.readObject());
             }));
 
-            //FF - will use decimal for BigDecimal with a check for overflow
             handlers["bigdec"] = new GenericReadHandler<decimal>(new Func<Reader, Object, int, decimal>((r, t, c) =>
             {
-                //FF - WIP
-                //try
-                //{
-                //    var d = (byte[])r.readObject();
-                //    var s = (int)r.readInt();
-                //    BigInteger b = new BigInteger(d);
-                //    uint scale = ((uint)d[3] >> 16) & 31;
-                //    var sign = ! ( (d[3] & (1 << 31)) != 0);
-                //    return new Decimal(BitConverter.ToInt32(d, 0)
-                //               , BitConverter.ToInt32(d, 32)
-                //               , BitConverter.ToInt32(d, 64)
-                //               , sign
-                //               , (byte)scale);
-                //}
-                //catch(OverflowException oe)
-                //{
-                //    throw new NotSupportedException("Only 96 bit decimals are supported on the CLR", oe);
-                //}
-                throw new NotSupportedException("BigDecimal is not supported on the CLR");
-       
+                var d = (byte[])r.readObject();
+                var s = (int)r.readInt();
+                return Fns.DecimalValueFrom(d, s);
             }));
 
             handlers["inst"] = new GenericReadHandler<DateTime>(new Func<Reader, Object, int, DateTime>((r, t, c) =>
@@ -392,18 +374,13 @@ namespace org.fressian.impl
                 w.writeBytes(b.ToByteArray());
             })));
 
-            //FF big decimals not suppored on the clr
             installHandler(handlers, typeof(decimal), "bigdec", new GenericWriteHandler<object>(new Action<Writer, object>((w, o) =>
             {
-                //FF - WIP
-                //decimal d = (decimal)o;
-                //var bits = Decimal.GetBits(d);
-                //int scale = bits[3];
-                //BigInteger b = new BigInteger(d);
-                //w.writeTag("bigdec", 2);
-                //w.writeBytes(b.ToByteArray());
-                //w.writeInt(scale);
-                throw new NotSupportedException("BigDecimal is not supported on the CLR");
+                decimal d = (decimal)o;
+                var unscaledVals = Fns.UnscaledValues(d);
+                w.writeTag("bigdec", 2);
+                w.writeBytes(unscaledVals.Item1);
+                w.writeInt(unscaledVals.Item2);
             })));
 
             installHandler(handlers, typeof(Regex), "regex", new GenericWriteHandler<object>(new Action<Writer, object>((w, o) =>
