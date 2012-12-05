@@ -19,14 +19,14 @@ namespace fressian_server
         internal static int PORT = 19876;
         internal static ManualResetEvent SHUTDOWN_EVENT = new ManualResetEvent(false);
 
-        internal static void client(long n)
+        internal static void client(IPAddress host, int port, long n)
         {
             Random rnd = new Random((int)DateTime.Now.Ticks);
             IList<object> data = Enumerable.Select(Enumerable.Range(0, (int)n), x => (object)rnd.NextDouble()).ToList();
             //IList<float[]> data = Enumerable.Select(Enumerable.Range(0, (int)n), x => new float[] {1.2F}).ToList();
 
             TcpClient clientSocket = new TcpClient();
-            clientSocket.Connect(new IPEndPoint(IPAddress.Loopback, PORT));
+            clientSocket.Connect(new IPEndPoint(host, port));
             //clientSocket.Connect(new IPEndPoint(IPAddress.Parse("10.99.0.113"), PORT));
             //clientSocket.Connect(new IPEndPoint(IPAddress.Parse("10.40.5.142"), PORT));
 
@@ -169,7 +169,7 @@ namespace fressian_server
             }
             else  // will parse the command line args[0] and use that to send random doubles to localhost server
             {
-                client(Convert.ToInt64(args[0]));
+                client(IPADDRESS, PORT, Convert.ToInt64(args[0]));
             }
         }
     }
