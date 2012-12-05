@@ -7,9 +7,11 @@
 //   You must not remove this notice, or any other, from this software.
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Text.RegularExpressions;
+using System.Linq;
 
 using org.fressian.handlers;
 
@@ -19,10 +21,10 @@ namespace org.fressian.impl
     {
         public static readonly IDictionary<object, Int32> tagToCode;
         public static readonly IDictionary<object, ReadHandler> extendedReadHandlers;
-        public static readonly ILookup<Type, IDictionary<String, WriteHandler>> coreWriteHandlers;
-        public static readonly ILookup<Type, IDictionary<String, WriteHandler>> extendedWriteHandlers;
+        public static readonly org.fressian.handlers.ILookup<Type, IDictionary<String, WriteHandler>> coreWriteHandlers;
+        public static readonly org.fressian.handlers.ILookup<Type, IDictionary<String, WriteHandler>> extendedWriteHandlers;
 
-        internal class GenericReadHandler<T> : ReadHandler
+        public class GenericReadHandler<T> : ReadHandler
         {
             internal Func<Reader, Object, int, T> _fn;
 
@@ -37,7 +39,7 @@ namespace org.fressian.impl
             }
         }
 
-        internal class GenericWriteHandler<T> : WriteHandler
+        public class GenericWriteHandler<T> : WriteHandler
         {
             internal Action<Writer, object> _fn;
 
@@ -56,6 +58,19 @@ namespace org.fressian.impl
         {
             public static readonly Null Value = new Null();
             private Null() { }
+        }
+
+        public static IDictionary<object, object> ParseNullKeyDictionary(IEnumerable o)
+        {
+            var ret = new Dictionary<object, object>();
+            foreach(KeyValuePair<object, object> kvp in o)
+            {
+                if (kvp.Key == null)
+                    ret[Handlers.Null.Value] = kvp.Value;
+                else
+                    ret[kvp.Key] = kvp.Value;
+            }
+            return ret;
         }
 
         static Handlers()
@@ -97,7 +112,7 @@ namespace org.fressian.impl
             return map;
         }
 
-        private static ILookup<Type, IDictionary<String, WriteHandler>> initCoreWriteHandlers()
+        private static org.fressian.handlers.ILookup<Type, IDictionary<String, WriteHandler>> initCoreWriteHandlers()
         {
             IDictionary<Type, IDictionary<String, WriteHandler>> handlers = new Dictionary<Type, IDictionary<String, WriteHandler>>();
             var intHandler = new GenericWriteHandler<object>(new Action<Writer, object>((w, o) => w.writeInt(o)));
@@ -207,7 +222,12 @@ namespace org.fressian.impl
                 IList<object> kvs = (IList<object>)r.readObject();
                 for (int i = 0; i < kvs.Count; i += 2)
                 {
-                    m[kvs[i]] = kvs[i + 1];
+                    if (kvs[i] == null)
+                        m[Handlers.Null.Value] = kvs[i + 1];
+                    else
+                        m[kvs[i]] = kvs[i + 1];
+
+                    //m[kvs[i]] = kvs[i + 1];
                 }
                 return m;
             }));
@@ -336,7 +356,7 @@ namespace org.fressian.impl
             return EPOCH.AddMilliseconds(t);
         }
 
-        private static ILookup<Type, IDictionary<String, WriteHandler>> initExtendedWriteHandlers()
+        private static org.fressian.handlers.ILookup<Type, IDictionary<String, WriteHandler>> initExtendedWriteHandlers()
         {
             IDictionary<Type, IDictionary<String, WriteHandler>> handlers = new Dictionary<Type, IDictionary<String, WriteHandler>>();
             var intHandler = new Action<Writer, object>((w, o) => w.writeInt(o));
@@ -351,7 +371,7 @@ namespace org.fressian.impl
             installHandler(handlers, typeof(ISet<object>), "set", new GenericWriteHandler<object>(new Action<Writer, object>((w, o) =>
             {
                 w.writeTag("set", 1);
-                w.writeList(o);
+                w.writeList(((ISet<object>)o).ToList());
 
             })));
             installHandler(handlers, typeof(IDictionary<object, object>), "map", new GenericWriteHandler<object>(new Action<Writer, object>((w, o) =>
@@ -407,13 +427,13 @@ namespace org.fressian.impl
             return new InheritanceLookup<IDictionary<String, WriteHandler>>(new MapLookup<Type, IDictionary<String, WriteHandler>>(handlers));
         }
 
-        public static ILookup<Type, IDictionary<String, WriteHandler>> defaultWriteHandlers()
+        public static org.fressian.handlers.ILookup<Type, IDictionary<String, WriteHandler>> defaultWriteHandlers()
         {
             return new CachingLookup<Type, IDictionary<String, WriteHandler>>
                 (new ChainedLookup<Type, IDictionary<String, WriteHandler>>(coreWriteHandlers, extendedWriteHandlers));
         }
 
-        public static ILookup<Type, IDictionary<String, WriteHandler>> customWriteHandlers(ILookup<Type, IDictionary<String, WriteHandler>> userHandlers)
+        public static org.fressian.handlers.ILookup<Type, IDictionary<String, WriteHandler>> customWriteHandlers(org.fressian.handlers.ILookup<Type, IDictionary<String, WriteHandler>> userHandlers)
         {
             if (userHandlers != null)
             {
