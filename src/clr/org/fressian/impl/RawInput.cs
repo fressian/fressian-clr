@@ -15,8 +15,8 @@ namespace org.fressian.impl
     public class RawInput : IDisposable
     {
         private readonly Stream stream;
-        private readonly CheckedStream _checkedStream;
-        private readonly BinaryReader dis;
+        private readonly CheckedOutputStream _checkedStream;
+        //private readonly BinaryReader dis;
         private int bytesRead;
 
         public RawInput(Stream stream) : this(stream, true)
@@ -27,7 +27,7 @@ namespace org.fressian.impl
         {
             if (validateAdler)
             {
-                this._checkedStream = new CheckedStream(stream, new Adler32());
+                this._checkedStream = new CheckedOutputStream(stream, new Adler32());
                 this.stream = _checkedStream;
             }
             else
@@ -35,19 +35,51 @@ namespace org.fressian.impl
                 this.stream = stream;
                 this._checkedStream = null;
             }
-            this.dis = new BinaryReader(this.stream);
+            //this.dis = new BinaryReader(this.stream);
         }
 
+        private byte[] internalReadBytes(byte[] bytes, int offset, int length, bool convertToBigEndian)
+        {
+            int readCnt = offset;
+            while (readCnt < length)
+            {
+                var c = this.stream.Read(bytes, offset, length - readCnt);
+                if (c == 0)
+                    throw new EndOfStreamException();
+                readCnt += c;
+            }
+            if(convertToBigEndian)
+                Array.Reverse(bytes);
+            bytesRead += length;
+            return bytes;
+        }
+
+        private byte[] onebyte = new byte[1];
         public int readRawByte()
         {
             //int result = this.stream.ReadByte();
-            int result = this.dis.ReadByte();
-            if (result < 0)
+            //int result = this.dis.ReadByte();
+            //if (result < 0)
+            //{
+            //    throw new EndOfStreamException();
+            //}
+            //bytesRead++;
+            //return result;
+
+            /*
+            int readCnt = 0;
+            while (readCnt != 1)
             {
-                throw new EndOfStreamException();
+                var c = this.stream.Read(onebyte, 0, 1);
+                if (c == 0)
+                    throw new EndOfStreamException();
+                readCnt += c;
             }
             bytesRead++;
-            return result;
+            */
+
+            internalReadBytes(onebyte, 0, 1, false);
+            return (int)onebyte[0];
         }
 
         public long readRawInt8()
@@ -80,39 +112,97 @@ namespace org.fressian.impl
             return (readRawInt16() << 32) | readRawInt32();
         }
 
-        //private byte[] rawbytes = new byte[8];
-        
+        private byte[] eightbytes = new byte[8];
         public long readRawInt64()
         {
-            bytesRead = bytesRead + 8;
             //return dis.ReadInt64();
             
-            var bytes = this.dis.ReadBytes(8);
-            Array.Reverse(bytes);
-            return BitConverter.ToInt64(bytes, 0);
+            //var bytes = this.dis.ReadBytes(8);
+            //Array.Reverse(bytes);
+            //return BitConverter.ToInt64(bytes, 0); 
+
+            /*
+            int readCnt = 0;
+            while (readCnt != 8)
+            {
+                var c = this.stream.Read(eightbytes, readCnt, 8 - readCnt);
+                if (c == 0)
+                    throw new EndOfStreamException();
+                readCnt += c;
+            }
+            bytesRead = bytesRead + 8;            
+            Array.Reverse(eightbytes);
+            */
+
+            internalReadBytes(eightbytes, 0, 8, true);            
+            return BitConverter.ToInt64(eightbytes, 0);
         }
 
+        private byte[] fourbytes = new byte[4];
         public float readRawFloat()
-        {
+        {            
+            //var bytes = this.dis.ReadBytes(4);
+            //Array.Reverse(bytes);
+            //return BitConverter.ToSingle(bytes, 0); 
+
+            /*
+            int readCnt = 0;
+            while (readCnt != 4)
+            {
+                var c = this.stream.Read(eightbytes, readCnt, 4 - readCnt);
+                if (c == 0)
+                    throw new EndOfStreamException();
+                readCnt += c;
+            }
+            Array.Reverse(fourbytes);
             bytesRead = bytesRead + 4;            
-            var bytes = this.dis.ReadBytes(4);
-            Array.Reverse(bytes);
-            return BitConverter.ToSingle(bytes, 0);
+            */
+
+            internalReadBytes(fourbytes, 0, 4, true);            
+            return BitConverter.ToSingle(fourbytes, 0);            
         }
 
         public double readRawDouble()
-        {
+        {            
+            //var bytes = dis.ReadBytes(8);
+            //Array.Reverse(bytes);
+            //return BitConverter.ToDouble(bytes, 0);
+
+            /*
+            int readCnt = 0;
+            while (readCnt != 8)
+            {
+                var c = this.stream.Read(eightbytes, readCnt, 8 - readCnt);
+                if (c == 0)
+                    throw new EndOfStreamException();
+                readCnt += c;
+            }
+            Array.Reverse(eightbytes);
             bytesRead = bytesRead + 8;
-            var bytes = dis.ReadBytes(8);
-            Array.Reverse(bytes);
-            return BitConverter.ToDouble(bytes, 0);            
+            */
+
+            internalReadBytes(eightbytes, 0, 8, true);            
+            return BitConverter.ToDouble(eightbytes, 0);
         }
 
         public void readFully(byte[] bytes, int offset, int length)
         {
-            this.dis.Read(bytes, offset, length);
+            //this.dis.Read(bytes, offset, length);
             //this.stream.Read(bytes, offset, length);
+            
+            /*
+            int readCnt = 0;
+            while (readCnt < length)
+            {
+                var c = this.stream.Read(bytes, readCnt, length - readCnt);
+                if (c == 0)
+                    throw new EndOfStreamException();
+                readCnt += c;
+            }
             bytesRead += length;
+            */
+
+            internalReadBytes(bytes, 0, length, false);
         }
 
         public int getBytesRead()
@@ -138,15 +228,13 @@ namespace org.fressian.impl
                 int calculatedChecksum = (int)_checkedStream.GetChecksum().Value;
                 int checksumFromStream = (int)readRawInt32();
                 if (calculatedChecksum != checksumFromStream)
-                {
                     throw new ApplicationException(String.Format("Invalid footer checksum, expected {0} got {1}", calculatedChecksum, checksumFromStream));
-                }
             }
         }
 
         public void Dispose()
         {
-            this.dis.Close();
+            //this.dis.Close();
         }
     }
 }

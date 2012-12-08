@@ -42,7 +42,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="org\fressian\Adler32.cs" />
-    <Compile Include="org\fressian\CheckedStream.cs" />
+    <Compile Include="org\fressian\CheckedInputStream.cs" />
+    <Compile Include="org\fressian\CheckedOutputStream.cs" />
     <Compile Include="org\fressian\handlers\ReadHandler.cs" />
     <Compile Include="org\fressian\handlers\WriteHandler.cs" />
     <Compile Include="org\fressian\Checksum.cs" />
