@@ -15,7 +15,7 @@ namespace org.fressian.impl
     public class RawInput : IDisposable
     {
         private readonly Stream stream;
-        private readonly CheckedOutputStream _checkedStream;
+        private readonly CheckedInputStream _checkedStream;
         //private readonly BinaryReader dis;
         private int bytesRead;
 
@@ -27,7 +27,7 @@ namespace org.fressian.impl
         {
             if (validateAdler)
             {
-                this._checkedStream = new CheckedOutputStream(stream, new Adler32());
+                this._checkedStream = new CheckedInputStream(stream, new Adler32());
                 this.stream = _checkedStream;
             }
             else

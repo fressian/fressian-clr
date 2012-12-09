@@ -15,13 +15,13 @@ namespace org.fressian.impl
 {    
     public class RawOutput : IDisposable
     {
-        private readonly CheckedInputStream _checkedStream;
+        private readonly CheckedOutputStream _checkedStream;
         private int bytesWritten;
         private BinaryWriter writer;
 
         public RawOutput(Stream stream)
         {
-            this._checkedStream = new CheckedInputStream(stream, new Adler32());
+            this._checkedStream = new CheckedOutputStream(stream, new Adler32());
             this.writer = new BinaryWriter(this._checkedStream);
         }
 
