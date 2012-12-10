@@ -38,7 +38,7 @@
 (defn big-decimal
   "NOTE: only 96 bit decimals are supported on the CLR natively"
   []
-  (BigDecimal. (big-int) (gen/geometric 0.01)))
+  (Decimal. (gen/double)))
 
 (def epoch (DateTime. 1970 1 1 0 0 0 DateTimeKind/Utc))
 
