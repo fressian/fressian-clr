@@ -43,12 +43,11 @@ namespace org.fressian
             this.rawOut = new RawOutput(this.stream);
         }
 
-        public FressianWriter(Stream stream, object userHandlers, bool dummy)
+        public static FressianWriter CreateFressianWriter(Stream stream, object userHandlers)
         {
             if (userHandlers != null)
             {
                 var dLookup = new Dictionary<Type, IDictionary<String, WriteHandler>>();
-
                 var handlers = ((System.Collections.Generic.IEnumerable<object>)userHandlers);
                 foreach (System.Collections.IList h in handlers)
                 {
@@ -64,15 +63,12 @@ namespace org.fressian
                     }
                 }
 
-                this.writeHandlerLookup = new WriteHandlerLookup(new MapLookup<Type, IDictionary<String, WriteHandler>>(dLookup));
+                return new FressianWriter(stream, new MapLookup<Type, IDictionary<String, WriteHandler>>(dLookup));
             }
             else
             {
-                this.writeHandlerLookup = new WriteHandlerLookup(Handlers.defaultWriteHandlers());
+                return new FressianWriter(stream, Handlers.defaultWriteHandlers());
             }
-            clearCaches();
-            this.stream = stream;
-            this.rawOut = new RawOutput(this.stream);
         }
 
         public Writer writeNull()

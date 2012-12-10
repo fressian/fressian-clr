@@ -4,7 +4,7 @@
 (ns org.fressian.generators
   (:refer-clojure :exclude [symbol keyword])
   (:import org.fressian.TaggedObject)
-  (:require [clojure.test.generative.generators :as gen]
+  (:require [clojure.data.generators :as gen]
             [clojure.core :as core]))
 
 (defn uuid

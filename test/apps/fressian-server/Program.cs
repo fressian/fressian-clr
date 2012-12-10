@@ -85,7 +85,7 @@ namespace fressian_server
 
         internal static void writeFressianObject<T>(Stream stream, IList<T> objects)
         {
-            using (FressianWriter wtr = new FressianWriter(stream, null, false))
+            using (FressianWriter wtr = FressianWriter.CreateFressianWriter(stream, null))
             {
                 foreach (object d in objects)
                 {
