@@ -1,5 +1,8 @@
 ;; Copyright (c) Metadata Partners, LLC.
 ;; All rights reserved.
+;;
+;; Contributors:  Frank Failla
+;;
 
 (ns org.fressian.generators
   (:refer-clojure :exclude [symbol keyword])

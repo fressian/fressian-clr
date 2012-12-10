@@ -1,3 +1,9 @@
+;; Copyright (c) Metadata Partners, LLC.
+;; All rights reserved.
+;;
+;; Contributors:  Frank Failla
+;;
+
 (ns org.fressian.clr
   (:use [clojure.pprint :only [pprint]])
   (:require [org.fressian.generators :as gen]
