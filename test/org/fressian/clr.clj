@@ -1,6 +1,3 @@
-(assembly-load-from "c:/Program Files (x86)/Reference Assemblies/Microsoft/Framework/.NETFramework/v4.0/System.Numerics.dll")
-(assembly-load-from "c:/Users/pairuser/dev/fressian-clr/src/clr/bin/Debug/fressian.dll")
-
 (ns org.fressian.clr
   (:use [clojure.pprint :only [pprint]])
   (:require [org.fressian.generators :as gen]

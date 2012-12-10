@@ -1,0 +1,3 @@
+[submodule "submodules/data.generators-clr"]
+	path = submodules/data.generators-clr
+	url = git@github.com:ffailla/data.generators-clr.git
