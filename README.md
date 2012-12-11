@@ -1,19 +1,18 @@
 # Fressian CLR
 
-This is a direct port of the Java Fressian Project to the CLR.
+This is a direct port of the Java Fressian Project to the CLR. The 
+Getting Started Documentation for Java can be found 
+[here](http://github.com/Datomic/fressian/wiki)
 
 ## What is Fressian? 
 
 Fressian is an extensible binary data notation. It is inspired by, and
 shares many design objectives with
 [hessian](http://hessian.caucho.com/) and
-[edn](https://github.com/edn-format/edn)
-
-## Getting Started in Java
-
-* Read the [Documentation](http://github.com/Datomic/fressian/wiki)
+[edn](https://github.com/edn-format/edn).
 
 ## CLR Implementation Notes
+
 This is a CLR port of the [fressian](http://github.com/Datomic/fressian) 
 project implemented for the JVM. This is the first iteration of the port, 
 and the java source code was used as a basis to the code organization. 
@@ -24,7 +23,7 @@ Future efforts may involve making the API more idomatic to CLR developers.
 #### Mapped Types
 Below are the native fressian type to clr type mappings:
 
-* int -> long (Int64)
+* int -> long
 * bool -> bool
 * bytes -> byte[]
 * double -> double
@@ -40,7 +39,7 @@ Below are the native fressian type to clr type mappings:
 * bigdec -> System.Decimal (see BigDecimal support below)
 * inst -> System.DateTime
 
-#### BigDecimal Support
+##### BigDecimal Support
 Since there is not a native BigDecimal equivilent on the CLR, only partial 
 BigDecimal support was implemented in fressian-clr.  If the big decimal value
 exceeds 96 bits (the size of the Decimal type in the CLR), an OverflowException
@@ -64,14 +63,21 @@ that are going to be written to the socket
 
 ### Tests
 
+#### Unit Tests
 The java fressian tests were all written using [test.generative 0.1.4](https://github.com/clojure/test.generative). 
 A CLR port of [data.generators](https://github.com/clojure/data.generators) called 
 [data.generators-clr](https://github.com/ffailla/data.generators-clr) was used 
-for test data when porting these fressian tests.  
+for test data when porting these fressian tests. The data.generators-clr project is
+referenced as a git submodule in ./submodules/data.generators-clr.
 
 For these tests, [clojure-clr 1.4.1](https://github.com/clojure/clojure-clr) was used 
 and is directly reference in the bin/repl.bat file.  The fressian project must first 
 be compiled in orderfor the ./script/runtests.clj script to run from this repl, since it needs to load the fressian.dll assembly first.
+
+#### Cross Platform Testing
+
+Cross platform testing was conducted using the included fressian-server example project.  Test
+data was roundtripped from CLR -> Java, CLR -> CLR, and Java -> CLR using this server.
 
 ## License
 
