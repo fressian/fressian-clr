@@ -44,12 +44,28 @@ namespace org.fressian.impl
 
         public static byte[] UUIDtoByteArray(Guid uuid)
         {
-            return uuid.ToByteArray();
+            return ToOrFromJvmUuidByteOrder( uuid.ToByteArray() );
+        }
+
+        private static byte[] ToOrFromJvmUuidByteOrder( byte[] guidBytes ) {
+            var resultBytes = new byte[ guidBytes.Length ];
+            resultBytes[ 0 ] = guidBytes[ 3 ];
+            resultBytes[ 1 ] = guidBytes[ 2 ];
+            resultBytes[ 2 ] = guidBytes[ 1 ];
+            resultBytes[ 3 ] = guidBytes[ 0 ];
+            resultBytes[ 4 ] = guidBytes[ 5 ];
+            resultBytes[ 5 ] = guidBytes[ 4 ];
+            resultBytes[ 6 ] = guidBytes[ 7 ];
+            resultBytes[ 7 ] = guidBytes[ 6 ];
+            for ( int i = 8 ; i < 16 ; i++ ) {
+                resultBytes[ i ] = guidBytes[ i ];
+            }
+            return resultBytes;
         }
 
         public static Guid byteArrayToUUID(byte[] bytes)
         {
-            return new Guid(bytes);
+            return new Guid( ToOrFromJvmUuidByteOrder( bytes ) );
         }
 
         public static K soloKey<K, V>(IDictionary<K, V> m)
